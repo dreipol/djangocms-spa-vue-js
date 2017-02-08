@@ -22,7 +22,7 @@ Add it to your `INSTALLED_APPS`:
         ...
     )
 
-Add djangocms_spa's URL patterns:
+Add the URL pattern form the API:
 
 .. code-block:: python
 
