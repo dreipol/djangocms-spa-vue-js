@@ -55,11 +55,10 @@ setup(
     packages=[
         'djangocms_spa_vue_js',
     ],
+    include_package_data=True,
     install_requires=[
         'djangorestframework==3.5.3'
     ],
-    include_package_data=True,
-    install_requires=[],
     license="MIT",
     zip_safe=False,
     keywords='djangocms-spa-vue-js',
