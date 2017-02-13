@@ -111,9 +111,12 @@ class VueJsMenuModifier(Modifier):
             view_class_module_path = resolved_url._func_path  # e.g. my_app.views.views.MyListView
             app_name = view_class_module_path[:view_class_module_path.index('.')]
             app_slug_setting_variable_name = '{}_URL_PART'.format(app_name.upper())
-            app_slug = getattr(settings, app_slug_setting_variable_name)
-
-            route_data['api']['fetch'] = reverse('api:%s' % resolved_url.url_name, kwargs={'app_slug': app_slug})
+            try:
+                app_slug = getattr(settings, app_slug_setting_variable_name)
+            except AttributeError:
+                pass
+            else:
+                route_data['api']['fetch'] = reverse('api:%s' % resolved_url.url_name, kwargs={'app_slug': app_slug})
 
         # Add initial data for the selected page.
         if node.selected:
