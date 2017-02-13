@@ -1,5 +1,6 @@
-from appconf import AppConf
 from django.conf import settings
+
+from appconf import AppConf
 from djangocms_spa.content_helpers import get_frontend_data_dict_for_placeholders, get_global_placeholder_data
 from djangocms_spa.models import DjangoCmsMixin
 
@@ -24,10 +25,10 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
     def vue_js_router_name(self):
         return '%s-%s' % (self._meta.app_label, self._meta.model_name)
 
-    def get_frontend_list_data_dict(self, request, placeholder_name, meta_title='', include_admin_data=False):
+    def get_frontend_list_data_dict(self, request, placeholder_name, meta_title='', editable=False):
         data = {}
 
-        if include_admin_data:
+        if editable:
             data.update(self.get_cms_placeholder_json(request=request, placeholder_name=placeholder_name))
 
         data.update({
@@ -41,7 +42,7 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
         })
         return data
 
-    def get_frontend_detail_data_dict(self, request, include_admin_data=False):
+    def get_frontend_detail_data_dict(self, request, editable=False):
         data = {}
 
         # Add all placeholder fields.
@@ -50,7 +51,7 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
         placeholder_frontend_data_dict = get_frontend_data_dict_for_placeholders(
             placeholders=placeholders,
             request=request,
-            include_admin_data=include_admin_data
+            editable=editable
         )
         global_placeholder_data_dict = get_global_placeholder_data(placeholder_frontend_data_dict)
         data['containers'] = placeholder_frontend_data_dict

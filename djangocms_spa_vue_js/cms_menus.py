@@ -1,11 +1,12 @@
 from cms.models import Page, Title
 from django.conf import settings
 from django.core.urlresolvers import resolve, reverse
+from menus.base import Modifier
+from menus.menu_pool import menu_pool
+
 from djangocms_spa.content_helpers import (get_frontend_data_dict_for_cms_page, get_frontend_data_dict_for_partials,
                                            get_partial_names_for_template)
 from djangocms_spa.utils import get_frontend_component_name_by_template, get_template_path_by_frontend_component_name
-from menus.base import Modifier
-from menus.menu_pool import menu_pool
 
 from .router_helpers import get_vue_js_router_name_for_cms_page
 
@@ -70,7 +71,7 @@ class VueJsMenuModifier(Modifier):
             route['api']['fetched']['partials'] = get_frontend_data_dict_for_partials(
                 partials=partial_names,
                 request=request,
-                include_admin_data=request.user.has_perm('cms.edit_static_placeholder'),
+                editable=request.user.has_perm('cms.edit_static_placeholder'),
                 renderer=self.renderer,
             )
 
@@ -125,7 +126,7 @@ class VueJsMenuModifier(Modifier):
                     cms_page=cms_page,
                     cms_page_title=cms_page_title,
                     request=request,
-                    include_admin_data=request.user.has_perm('cms.change_page')
+                    editable=request.user.has_perm('cms.change_page')
                 )
             }
 

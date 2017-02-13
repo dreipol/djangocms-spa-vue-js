@@ -6,9 +6,10 @@ from django.http import HttpResponse, JsonResponse
 from django.views.generic import View
 from django.views.generic.detail import BaseDetailView
 from django.views.generic.list import MultipleObjectMixin
+from rest_framework.views import APIView
+
 from djangocms_spa.content_helpers import (get_frontend_data_dict_for_cms_page, get_frontend_data_dict_for_partials,
                                            get_partial_names_for_template)
-from rest_framework.views import APIView
 
 from .decorators import cache_view
 from .menu_helpers import get_vue_js_router
@@ -67,7 +68,7 @@ class FrontendRouterBase(View):
         return get_frontend_data_dict_for_partials(
             partials=partial_names,
             request=self.request,
-            include_admin_data=self.request.user.has_perm('cms.edit_static_placeholder'),
+            editable=self.request.user.has_perm('cms.edit_static_placeholder'),
         )
 
     def has_change_permission(self):
@@ -98,7 +99,7 @@ class FrontendRouterJsonListMixin(FrontendRouterBase):
             )
             obj_data_dict = obj.get_frontend_list_data_dict(
                 request=self.request,
-                include_admin_data=self.has_change_permission(),
+                editable=self.has_change_permission(),
                 placeholder_name=placeholder_name
             )
             list_data.append(obj_data_dict)
@@ -122,7 +123,7 @@ class FrontendRouterJsonDetailMixin(FrontendRouterBase, BaseDetailView):
         data = super(FrontendRouterJsonDetailMixin, self).get_router_view_context_data()
         data.update(self.object.get_frontend_detail_data_dict(
             request=self.request,
-            include_admin_data=self.has_change_permission()
+            editable=self.has_change_permission()
         ))
         return data
 
@@ -140,7 +141,7 @@ class CMSPageDetailAPIView(APIView):
             cms_page=cms_page,
             cms_page_title=cms_page_title,
             request=request,
-            include_admin_data=request.user.has_perm('cms.change_page')
+            editable=request.user.has_perm('cms.change_page')
         )
         if data:
             context['data'] = data
@@ -150,7 +151,7 @@ class CMSPageDetailAPIView(APIView):
         partials = get_frontend_data_dict_for_partials(
             partials=partial_names,
             request=self.request,
-            include_admin_data=self.request.user.has_perm('cms.edit_static_placeholder'),
+            editable=self.request.user.has_perm('cms.edit_static_placeholder'),
         )
         if partials:
             context['partials'] = partials
@@ -169,7 +170,7 @@ class BaseAPIView(APIView):
         return get_frontend_data_dict_for_partials(
             partials=partial_names,
             request=self.request,
-            include_admin_data=self.request.user.has_perm('cms.edit_static_placeholder'),
+            editable=self.request.user.has_perm('cms.edit_static_placeholder'),
         )
 
 
