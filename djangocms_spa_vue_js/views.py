@@ -2,9 +2,10 @@ import json
 
 from cms.utils.page_resolver import get_page_from_request
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse, JsonResponse
-from django.views.generic import View
-from django.views.generic.detail import BaseDetailView
+from django.views.generic import TemplateView
+from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.list import MultipleObjectMixin
 from rest_framework.views import APIView
 
@@ -15,43 +16,46 @@ from .decorators import cache_view
 from .menu_helpers import get_vue_js_router
 
 
-class FrontendRouterBase(View):
-    app_slug = ''
-
-    def __init__(self):
-        super(FrontendRouterBase, self).__init__()
-        self.model_name = self.model._meta.model_name
-
-    @staticmethod
-    def route_is_active(route):
-        return 'fetched' in route['api']
+class FrontendRouterBase(TemplateView):
+    fetch_url = None
 
     @cache_view
     def dispatch(self, request, **kwargs):
-        # The app slug is needed to find the CMS page of the app hook.
-        self.app_slug = kwargs.pop('app_slug', '')
         return super(FrontendRouterBase, self).dispatch(request, **kwargs)
 
     def get_context_data(self, **kwargs):
-        context = super(FrontendRouterBase, self).get_context_data(**kwargs)
+        vue_js_router = self.get_vue_js_router_including_fetched_data()
+        return {
+            'vue_js_router': json.dumps(vue_js_router)
+        }
+
+    def get_vue_js_router_including_fetched_data(self):
         vue_js_router = get_vue_js_router(request=self.request)
 
-        # At this point, the `vue_js_router` on the context includes all menu nodes that are used for the routing. The
-        # next step is to put the contents of this very detail view into the router object.
+        # Put the context data of this view into the active route.
         active_route = self.get_active_route(vue_js_router['routes'])
-        active_route['api']['fetched']['data'].update(self.get_router_view_context_data())
+        if active_route:
+            active_route['api']['fetched']['data'].update(
+                self.get_fetched_data()
+            )
 
-        context['vue_js_router'] = vue_js_router
+        return vue_js_router
 
-        return context
-
-    def get_router_view_context_data(self):
+    def get_fetched_data(self):
         # Override this method if you need further context data.
         return {}
 
+    def get_view_partials(self, partial_names):
+        return get_frontend_data_dict_for_partials(
+            partials=partial_names,
+            request=self.request,
+            editable=self.request.user.has_perm('cms.edit_static_placeholder'),
+        )
+
     def get_active_route(self, routes):
         for route in routes:
-            if self.route_is_active(route):
+            is_active_route = 'fetched' in route['api']
+            if is_active_route:
                 return route
 
             if route.get('children'):
@@ -61,111 +65,105 @@ class FrontendRouterBase(View):
 
         return None
 
-    def get_view_partials(self):
-        partial_names = get_partial_names_for_template(template=self.template_name, get_all=False,
-                                                       requested_partials=self.request.GET.get('partials', []))
+    def get_fetch_url(self):
+        if self.fetch_url:
+            return self.fetch_url
+        else:
+            raise ImproperlyConfigured('No fetch URL to get the data. Provide a fetch_url.')
 
-        return get_frontend_data_dict_for_partials(
-            partials=partial_names,
-            request=self.request,
-            editable=self.request.user.has_perm('cms.edit_static_placeholder'),
-        )
+
+class ObjectPermissionMixin(object):
+    model = None
+    request = None
 
     def has_change_permission(self):
-        model_permission_code = '%s.change_%s' % (self.model._meta.app_label, self.model._meta.model_name)
-        return self.request.user.has_perm(model_permission_code)
+        if hasattr(self, 'model'):
+            model_permission_code = '%s.change_%s' % (self.model._meta.app_label, self.model._meta.model_name)
+            return self.request.user.has_perm(model_permission_code)
+        return True
 
 
-class FrontendRouterJsonListMixin(FrontendRouterBase):
-    """
-    The framework that is used by the frontend has its own routing. We don't want to manage the urls in two separate
-    places (front- and backend) and prepare the needed structure here dynamically.
-    """
-    def get_context_data(self, **kwargs):
-        context = super(FrontendRouterJsonListMixin, self).get_context_data(**kwargs)
-        context['vue_js_router'] = json.dumps(context['vue_js_router'])
-        return context
+class MetaDataMixin(object):
+    def get_meta_data(self):
+        return {
+            'title': '',
+            'description': ''
+        }
 
-    def get_router_view_context_data(self):
-        data = super(FrontendRouterJsonListMixin, self).get_router_view_context_data()
-        object_list = getattr(self, 'object_list', self.get_queryset())
 
-        list_data = []
-        for obj in object_list:
-            placeholder_name = 'cms-plugin-{app}-{model}-{id}'.format(
-                app=obj._meta.app_label,
-                model=obj._meta.model_name,
-                id=obj.id
-            )
-            obj_data_dict = obj.get_frontend_list_data_dict(
-                request=self.request,
-                editable=self.has_change_permission(),
-                placeholder_name=placeholder_name
-            )
-            list_data.append(obj_data_dict)
+class MultipleObjectContentMixin(MetaDataMixin, ObjectPermissionMixin, MultipleObjectMixin):
+    list_container_name = settings.DJANGOCMS_SPA_VUE_JS_DEFAULT_LIST_CONTAINER_NAME
+    model = None
+    queryset = None
 
-        data.setdefault('containers', {})[settings.DJANGOCMS_SPA_VUE_JS_DEFAULT_LIST_CONTAINER_NAME] = list_data
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        return super(MultipleObjectContentMixin, self).get(request, *args, **kwargs)
 
+    def get_fetched_data(self):
+        object_list = []
+        editable = self.has_change_permission()
+
+        for object in self.object_list:
+            if hasattr(object, 'get_frontend_list_data_dict'):
+                placeholder_name = 'cms-plugin-{app}-{model}-{pk}'.format(
+                    app=object._meta.app_label,
+                    model=object._meta.model_name,
+                    pk=object.pk
+                )
+                object_list.append(object.get_frontend_list_data_dict(self.request, editable=editable,
+                                                                      placeholder_name=placeholder_name))
+
+        return {
+            'containers': {
+                self.list_container_name: object_list
+            },
+            'meta': self.get_meta_data()
+        }
+
+
+class SingleObjectContentMixin(MetaDataMixin, ObjectPermissionMixin, SingleObjectMixin):
+    object = None
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super(SingleObjectContentMixin, self).get(request, *args, **kwargs)
+
+    def get_fetched_data(self):
+        data = {}
+
+        if hasattr(self.object, 'get_frontend_detail_data_dict'):
+            data = self.object.get_frontend_detail_data_dict(self.request, editable=self.has_change_permission())
+
+        data['meta'] = self.get_meta_data()
         return data
 
 
-class FrontendRouterJsonDetailMixin(FrontendRouterBase, BaseDetailView):
-    def __init__(self):
-        super(FrontendRouterJsonDetailMixin, self).__init__()
-        self.fetched_data_path = ['subRoutes', self.model.vue_js_router_key, 'api', 'fetched', 'data']
-
-    def get_context_data(self, **kwargs):
-        context = super(FrontendRouterJsonDetailMixin, self).get_context_data(**kwargs)
-        context['vue_js_router'] = json.dumps(context['vue_js_router'])
-        return context
-
-    def get_router_view_context_data(self):
-        data = super(FrontendRouterJsonDetailMixin, self).get_router_view_context_data()
-        data.update(self.object.get_frontend_detail_data_dict(
-            request=self.request,
-            editable=self.has_change_permission()
-        ))
-        return data
+class FrontendRouterListBase(MultipleObjectContentMixin, FrontendRouterBase):
+    pass
 
 
-class CMSPageDetailAPIView(APIView):
-    def get(self, request, **kwargs):
-        context = {}
-        cms_page = get_page_from_request(request, use_path=kwargs.get('path'))
-        if not cms_page:
-            return JsonResponse(data={}, status=404)
+class FrontendRouterDetailBase(SingleObjectContentMixin, FrontendRouterBase):
+    pass
 
-        cms_page_title = cms_page.title_set.get(language=request.LANGUAGE_CODE)
 
-        data = get_frontend_data_dict_for_cms_page(
-            cms_page=cms_page,
-            cms_page_title=cms_page_title,
-            request=request,
-            editable=request.user.has_perm('cms.change_page')
-        )
-        if data:
-            context['data'] = data
+class BaseAPIView(APIView):
+    template_name = None
 
-        partial_names = get_partial_names_for_template(template=cms_page.get_template(), get_all=False,
-                                                       requested_partials=request.GET.get('partials'))
-        partials = get_frontend_data_dict_for_partials(
-            partials=partial_names,
-            request=self.request,
-            editable=self.request.user.has_perm('cms.edit_static_placeholder'),
-        )
-        if partials:
-            context['partials'] = partials
+    @cache_view
+    def dispatch(self, request, **kwargs):
+        return super(BaseAPIView, self).dispatch(request, **kwargs)
 
+    def get(self, *args, **kwargs):
+        data = self.get_fetched_data()
         return HttpResponse(
-            content=json.dumps(context),
+            content=json.dumps(data),
             content_type='application/json',
             status=200
         )
 
-
-class BaseAPIView(APIView):
-    def get_view_partials(self):
-        partial_names = get_partial_names_for_template(template=self.template_name, get_all=False,
+    def get_partials(self):
+        partial_names = get_partial_names_for_template(template=self.get_template_names(), get_all=False,
                                                        requested_partials=self.request.GET.get('partials'))
         return get_frontend_data_dict_for_partials(
             partials=partial_names,
@@ -173,58 +171,70 @@ class BaseAPIView(APIView):
             editable=self.request.user.has_perm('cms.edit_static_placeholder'),
         )
 
+    def get_template_names(self):
+        return self.template_name
 
-class BaseListAPIView(FrontendRouterJsonListMixin, MultipleObjectMixin, BaseAPIView):
-    @cache_view
-    def dispatch(self, request, **kwargs):
-        return super(BaseListAPIView, self).dispatch(request, **kwargs)
 
-    def get(self, request, format=None):
-        data = self.get_context_data()
+class CMSPageDetailAPIView(BaseAPIView):
+    cms_page = None
+    cms_page_title = None
 
-        return HttpResponse(
-            content=json.dumps(data),
-            content_type='application/json',
-            status=200
+    def get(self, request, **kwargs):
+        self.cms_page = get_page_from_request(request, use_path=kwargs.get('path'))
+        self.cms_page_title = self.cms_page.title_set.get(language=request.LANGUAGE_CODE)
+
+        if not self.cms_page or not self.cms_page_title:
+            return JsonResponse(data={}, status=404)
+
+        return super(CMSPageDetailAPIView, self).get(request, **kwargs)
+
+    def get_fetched_data(self):
+        data = {}
+
+        view_data = get_frontend_data_dict_for_cms_page(
+            cms_page=self.cms_page,
+            cms_page_title=self.cms_page_title,
+            request=self.request,
+            editable=self.request.user.has_perm('cms.change_page')
         )
+        if view_data:
+            data.update(view_data)
 
-    def get_context_data(self, **kwargs):
-        context = {}
-
-        data = self.get_router_view_context_data()
-        if data:
-            context['data'] = data
-
-        partials = self.get_view_partials()
+        partials = self.get_partials()
         if partials:
-            context['partials'] = partials
+            data.update({'partials': partials})
 
-        return context
+        return {'data': data}
+
+    def get_template_names(self):
+        return self.cms_page.get_template()
 
 
-class BaseDetailAPIView(FrontendRouterJsonDetailMixin, BaseAPIView):
-    @cache_view
-    def dispatch(self, request, **kwargs):
-        return super(BaseDetailAPIView, self).dispatch(request, **kwargs)
+class BaseListAPIView(MultipleObjectContentMixin, BaseAPIView):
+    def get_fetched_data(self):
+        data = {}
 
-    def get(self, *args, **kwargs):
-        self.object = self.get_object()
-        data = self.get_context_data()
-        return HttpResponse(
-            content=json.dumps(data),
-            content_type='application/json',
-            status=200
-        )
+        view_data = super(BaseListAPIView, self).get_fetched_data()
+        if view_data:
+            data.update(view_data)
 
-    def get_context_data(self, **kwargs):
-        context = {}
-
-        data = self.get_router_view_context_data()
-        if data:
-            context['data'] = data
-
-        partials = self.get_view_partials()
+        partials = self.get_partials()
         if partials:
-            context['partials'] = partials
+            data.update({'partials': partials})
 
-        return context
+        return {'data': data}
+
+
+class BaseDetailAPIView(SingleObjectContentMixin, BaseAPIView):
+    def get_fetched_data(self):
+        data = {}
+
+        view_data = super(BaseDetailAPIView, self).get_fetched_data()
+        if view_data:
+            data.update(view_data)
+
+        partials = self.get_partials()
+        if partials:
+            data.update({'partials': partials})
+
+        return {'data': data}

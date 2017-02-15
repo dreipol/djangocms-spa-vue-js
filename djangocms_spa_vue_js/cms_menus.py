@@ -1,12 +1,12 @@
-from cms.models import Page, Title
+from cms.models import Page, force_text
 from django.conf import settings
-from django.core.urlresolvers import resolve, reverse
+from django.core.urlresolvers import reverse
 from menus.base import Modifier
 from menus.menu_pool import menu_pool
 
 from djangocms_spa.content_helpers import (get_frontend_data_dict_for_cms_page, get_frontend_data_dict_for_partials,
                                            get_partial_names_for_template)
-from djangocms_spa.utils import get_frontend_component_name_by_template, get_template_path_by_frontend_component_name
+from djangocms_spa.utils import get_frontend_component_name_by_template, get_view_from_url
 
 from .router_helpers import get_vue_js_router_name_for_cms_page
 
@@ -26,6 +26,14 @@ class VueJsMenuModifier(Modifier):
             - News detail A
             - News detail B
     """
+    @staticmethod
+    def get_node_template_name(node):
+        view = get_view_from_url(node.url)
+        if view.__module__ == 'cms.views':
+            return node.attr.get('template')
+        else:
+            return view.template_name
+
     def modify(self, request, nodes, namespace, root_id, post_cut, breadcrumb):
         # If the menu is not yet cut, don't do anything.
         if post_cut:
@@ -41,12 +49,16 @@ class VueJsMenuModifier(Modifier):
 
         for node in nodes:
             if not node.attr.get('nest_route'):
+
+                if node.attr.get('is_page'):
+                    node.attr['cms_page'] = Page.objects.get(id=node.id)
+
                 node_route = self.get_node_route(request, node)
                 if node_route:
                     node.attr['vue_js_route'] = node_route
                     router_nodes.append(node)
 
-        # To make sure all properties are available, we parse the nested children in a second step.
+        # To make sure all menu modifiers are handled, we parse the nested children in a second step.
         for router_node in router_nodes:
             children = self.get_node_route_children(node=router_node, request=request)
             if children:
@@ -65,10 +77,10 @@ class VueJsMenuModifier(Modifier):
         else:
             route = self.get_node_route_for_app_model(request, node, route_data)
 
-        if node.selected:
+        if node.selected and node.url == request.path:
             # Static CMS placeholders and other global page elements (e.g. menu) go into the `partials` dict.
-            partial_names = get_partial_names_for_template(template=node.attr.get('template'))
-            route['api']['fetched']['partials'] = get_frontend_data_dict_for_partials(
+            partial_names = get_partial_names_for_template(template=self.get_node_template_name(node))
+            route['api']['fetched']['data']['partials'] = get_frontend_data_dict_for_partials(
                 partials=partial_names,
                 request=request,
                 editable=request.user.has_perm('cms.edit_static_placeholder'),
@@ -76,7 +88,7 @@ class VueJsMenuModifier(Modifier):
             )
 
         # Add query params
-        template_path = get_template_path_by_frontend_component_name(route['component'])
+        template_path = self.get_node_template_name(node)
         try:
             partials = settings.DJANGOCMS_SPA_TEMPLATES[template_path]['partials']
         except KeyError:
@@ -87,40 +99,25 @@ class VueJsMenuModifier(Modifier):
         return route
 
     def get_node_route_for_cms_page(self, request, node, route_data):
-        # Fetch some data from the database.
-        try:
-            cms_page = Page.objects.get(id=node.id)
-            cms_page_title = cms_page.title_set.get(language=request.LANGUAGE_CODE)
-        except (Page.DoesNotExist, Title.DoesNotExist):
-            return False
-
-        # Update some other values of the node.
+        cms_page = node.attr['cms_page']
+        cms_page_title = cms_page.title_set.get(language=request.LANGUAGE_CODE)
         cms_template = cms_page.get_template()
+
+        # Set name and component of the route.
         route_data['component'] = get_frontend_component_name_by_template(cms_template)
         route_data['name'] = get_vue_js_router_name_for_cms_page(cms_page.pk)
 
-        # Add the fetch url
+        # Add the link to fetch the data from the API.
         if not cms_page.application_urls:
             route_data['api']['fetch'] = reverse('api:cms_page_detail', kwargs={'path': cms_page_title.path})
         else:
-            # A CMS page with an app hook is most likely a list view and needs to fetch the data from the model API.
-            # Because the url names of the list and api view are the same, we can get the reverse url easily by
-            # resolving the node url. Because of a strange behaviour we need to make sure we have a trailing slash,
-            # otherwise the resolver would not find the page.
-            fixed_url = node.url + '/' if node.url[-1] != '/' else node.url
-            resolved_url = resolve(fixed_url)
-            view_class_module_path = resolved_url._func_path  # e.g. my_app.views.views.MyListView
-            app_name = view_class_module_path[:view_class_module_path.index('.')]
-            app_slug_setting_variable_name = '{}_URL_PART'.format(app_name.upper())
-            try:
-                app_slug = getattr(settings, app_slug_setting_variable_name)
-            except AttributeError:
-                pass
-            else:
-                route_data['api']['fetch'] = reverse('api:%s' % resolved_url.url_name, kwargs={'app_slug': app_slug})
+            # Apphooks use a view that has a custom API URL to fetch data from.
+            view = get_view_from_url(node.url)
+            fetch_url = force_text(view().get_fetch_url())
+            route_data['api']['fetch'] = fetch_url
 
         # Add initial data for the selected page.
-        if node.selected:
+        if node.selected and node.url == request.path:
             route_data['api']['fetched'] = {
                 'data': get_frontend_data_dict_for_cms_page(
                     cms_page=cms_page,
@@ -135,31 +132,25 @@ class VueJsMenuModifier(Modifier):
         return route_data
 
     def get_node_route_for_app_model(self, request, node, route_data):
-        # Set name and component.
+        # Set name and component of the route.
         route_data['component'] = node.attr.get('component')
         route_data['name'] = node.attr.get('vue_js_router_name')
 
         # Add the link to fetch the data from the API.
         route_data['api']['fetch'] = node.attr.get('fetch_url')
 
-        # We need to prepare the initial structure of the fetched data.
+        # We need to prepare the initial structure of the fetched data. The actual data is added by the view.
         if request.path == node.attr.get('absolute_url'):
             route_data['api']['fetched'] = {
                 'data': {}
             }
+            route_data['params'] = node.attr.get('url_params', {})
 
-        # The sub route is generic. Therefor the frontend router does not know which instance is active. This is why
-        # we set the slug as param to the sub route object.
-        if request.path == node.attr.get('absolute_url'):
-            route_data['params'] = {'slug': node.attr.get('slug')}
-
-        route_data['path'] = '%s' % node.attr.get('slug')
+        route_data['path'] = node.url
         return route_data
 
     def get_node_route_children(self, node, request):
         """
-        If some of the frontend components can be shared between parent and child, the child node should be nested
-        into its parent route.
         Child nodes usually share components with each other. Let's assume having a news app. The list view shares
         some components with its detail pages. All detail pages look exactly the same. Using the `nested` feature of
         vue-router, we add one generic route rather than adding all detail pages. Therefor we need to use a generic
@@ -177,6 +168,10 @@ class VueJsMenuModifier(Modifier):
                     child_route['path'] = child_path_pattern
                     children.append(child_route)
                     children_path_patterns.append(child_path_pattern)
+                elif child_path_pattern in children_path_patterns and child_node.url == request.path:
+                    i = child_path_pattern.index(child_path_pattern)
+                    children[i] = self.get_node_route(request, child_node)
+                    children[i]['path'] = child_path_pattern
 
         return children
 

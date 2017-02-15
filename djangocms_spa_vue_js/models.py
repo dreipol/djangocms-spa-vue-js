@@ -1,31 +1,28 @@
-from django.conf import settings
-
 from appconf import AppConf
+
 from djangocms_spa.content_helpers import get_frontend_data_dict_for_placeholders, get_global_placeholder_data
 from djangocms_spa.models import DjangoCmsMixin
 
 
 class DjangocmsSPAVueJsConf(AppConf):
-    DETAIL_VIEW_ROUTE_OBJECT_COMPONENT = 'topic-detail'
-    DETAIL_VIEW_ROUTER_KEY = '/:slug'
     DEFAULT_LIST_CONTAINER_NAME = 'object_list'
-    PLACEHOLDER_DATA_POST_PROCESSOR = None
     CACHE_TIMEOUT = 60 * 10
-    CMS_PAGE_FRONTEND_DATA_POST_PROCESSOR = None
 
 
 class DjangocmsVueJsMixin(DjangoCmsMixin):
     """
     This mixin prepares the data of a model to be ready for the frontend.
     """
-    vue_js_router_component = settings.DJANGOCMS_SPA_VUE_JS_DETAIL_VIEW_ROUTE_OBJECT_COMPONENT
-    vue_js_router_key = settings.DJANGOCMS_SPA_VUE_JS_DETAIL_VIEW_ROUTER_KEY
+    vue_js_router_component = 'topic-detail'
+
+    class Meta:
+        abstract = True
 
     @property
     def vue_js_router_name(self):
         return '%s-%s' % (self._meta.app_label, self._meta.model_name)
 
-    def get_frontend_list_data_dict(self, request, placeholder_name, meta_title='', editable=False):
+    def get_frontend_list_data_dict(self, request, editable=False, placeholder_name=''):
         data = {}
 
         if editable:
@@ -35,9 +32,6 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
             'content': {
                 'id': self.pk,
                 'link': self.get_vue_js_link_dict(),
-                'meta': {
-                    'title': ''
-                },
             }
         })
         return data
@@ -64,9 +58,6 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
     def get_vue_js_link_dict(self):
         return {
             'name': self.vue_js_router_name,
-            'params': {
-                'slug': self.get_slug()
-            },
             'fetch': self.get_api_detail_url()
         }
 
@@ -74,21 +65,14 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
         return {
             'component': self.get_detail_view_component(),
             'vue_js_router_name': self.vue_js_router_name,
-            'fetch_url': self.get_api_list_url(),
             'absolute_url': self.get_absolute_url(),
-            'slug': self.get_slug(),
-            'path_pattern': ':slug',  # Used to group routes (dynamic route matching)
-            'nest_route': False
+            'fetch_url': self.get_api_detail_url(),
+            'path_pattern': self.get_detail_path_pattern(),
+            'url_params': self.get_url_params(),
+            'nest_route': True
         }
 
-    def get_slug(self):
-        return self.slug
-
     def get_absolute_url(self):
-        # Override this method in your model.
-        return ''
-
-    def get_api_list_url(self):
         # Override this method in your model.
         return ''
 
@@ -99,3 +83,13 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
     def get_detail_view_component(self):
         # Override this method in your model.
         return ''
+
+    def get_detail_path_pattern(self):
+        # Used to group routes (dynamic route matching). Override this method in your model.
+        return ':slug'
+
+    def get_url_params(self):
+        # Override this method in your model.
+        return {
+            'slug': ''
+        }
