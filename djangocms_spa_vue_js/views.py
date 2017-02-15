@@ -16,12 +16,12 @@ from .decorators import cache_view
 from .menu_helpers import get_vue_js_router
 
 
-class FrontendRouterBase(TemplateView):
+class VueRouterView(TemplateView):
     fetch_url = None
 
     @cache_view
     def dispatch(self, request, **kwargs):
-        return super(FrontendRouterBase, self).dispatch(request, **kwargs)
+        return super(VueRouterView, self).dispatch(request, **kwargs)
 
     def get_context_data(self, **kwargs):
         vue_js_router = self.get_vue_js_router_including_fetched_data()
@@ -91,14 +91,14 @@ class MetaDataMixin(object):
         }
 
 
-class MultipleObjectContentMixin(MetaDataMixin, ObjectPermissionMixin, MultipleObjectMixin):
+class MultipleObjectSpaMixin(MetaDataMixin, ObjectPermissionMixin, MultipleObjectMixin):
     list_container_name = settings.DJANGOCMS_SPA_VUE_JS_DEFAULT_LIST_CONTAINER_NAME
     model = None
     queryset = None
 
     def get(self, request, *args, **kwargs):
         self.object_list = self.get_queryset()
-        return super(MultipleObjectContentMixin, self).get(request, *args, **kwargs)
+        return super(MultipleObjectSpaMixin, self).get(request, *args, **kwargs)
 
     def get_fetched_data(self):
         object_list = []
@@ -122,12 +122,12 @@ class MultipleObjectContentMixin(MetaDataMixin, ObjectPermissionMixin, MultipleO
         }
 
 
-class SingleObjectContentMixin(MetaDataMixin, ObjectPermissionMixin, SingleObjectMixin):
+class SingleObjectSpaMixin(MetaDataMixin, ObjectPermissionMixin, SingleObjectMixin):
     object = None
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        return super(SingleObjectContentMixin, self).get(request, *args, **kwargs)
+        return super(SingleObjectSpaMixin, self).get(request, *args, **kwargs)
 
     def get_fetched_data(self):
         data = {}
@@ -139,20 +139,20 @@ class SingleObjectContentMixin(MetaDataMixin, ObjectPermissionMixin, SingleObjec
         return data
 
 
-class FrontendRouterListBase(MultipleObjectContentMixin, FrontendRouterBase):
+class VueRouterListView(MultipleObjectSpaMixin, VueRouterView):
     pass
 
 
-class FrontendRouterDetailBase(SingleObjectContentMixin, FrontendRouterBase):
+class VueRouterDetailView(SingleObjectSpaMixin, VueRouterView):
     pass
 
 
-class BaseAPIView(APIView):
+class VueSpaApiView(APIView):
     template_name = None
 
     @cache_view
     def dispatch(self, request, **kwargs):
-        return super(BaseAPIView, self).dispatch(request, **kwargs)
+        return super(VueSpaApiView, self).dispatch(request, **kwargs)
 
     def get(self, *args, **kwargs):
         data = self.get_fetched_data()
@@ -175,7 +175,7 @@ class BaseAPIView(APIView):
         return self.template_name
 
 
-class CMSPageDetailAPIView(BaseAPIView):
+class VueCmsPageDetailApiView(VueSpaApiView):
     cms_page = None
     cms_page_title = None
 
@@ -186,7 +186,7 @@ class CMSPageDetailAPIView(BaseAPIView):
         if not self.cms_page or not self.cms_page_title:
             return JsonResponse(data={}, status=404)
 
-        return super(CMSPageDetailAPIView, self).get(request, **kwargs)
+        return super(VueCmsPageDetailApiView, self).get(request, **kwargs)
 
     def get_fetched_data(self):
         data = {}
@@ -210,11 +210,11 @@ class CMSPageDetailAPIView(BaseAPIView):
         return self.cms_page.get_template()
 
 
-class BaseListAPIView(MultipleObjectContentMixin, BaseAPIView):
+class VueListApiView(MultipleObjectSpaMixin, VueSpaApiView):
     def get_fetched_data(self):
         data = {}
 
-        view_data = super(BaseListAPIView, self).get_fetched_data()
+        view_data = super(VueListApiView, self).get_fetched_data()
         if view_data:
             data.update(view_data)
 
@@ -225,11 +225,11 @@ class BaseListAPIView(MultipleObjectContentMixin, BaseAPIView):
         return {'data': data}
 
 
-class BaseDetailAPIView(SingleObjectContentMixin, BaseAPIView):
+class VueDetailApiView(SingleObjectSpaMixin, VueSpaApiView):
     def get_fetched_data(self):
         data = {}
 
-        view_data = super(BaseDetailAPIView, self).get_fetched_data()
+        view_data = super(VueDetailApiView, self).get_fetched_data()
         if view_data:
             data.update(view_data)
 
