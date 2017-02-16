@@ -184,14 +184,21 @@ All of your views need to be attached to the menu, even if they are not actually
 
 This is an example of a simple template view. Each view that you have needs an API view that returns the JSON data only::
 
-    class ContentMixin(object):
-        template_name = 'index.html'
+    class EventContentMixin(object):
+        template_name = 'pages/content_with_section_navigation.html'
 
-        def get_context_data(self, **kwargs):
+        def get_fetched_data(self):
             data = {
-                'containers': [{'key': 'value'}]
+                'containers': {
+                    'content': {
+                        'type': 'generic',
+                        'content': {
+                            'key': 'value'
+                        }
+                    }
+                }
             }
-            return super(ContentMixin, self).get_context_data(data=data)
+            return data
 
 
     class MyTemplateView(ContentMixin, VueRouterView):
