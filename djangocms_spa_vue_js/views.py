@@ -24,9 +24,8 @@ class VueRouterView(TemplateView):
         return super(VueRouterView, self).dispatch(request, **kwargs)
 
     def get_context_data(self, **kwargs):
-        vue_js_router = self.get_vue_js_router_including_fetched_data()
         return {
-            'vue_js_router': json.dumps(vue_js_router)
+            'vue_js_router': self.get_vue_js_router_including_fetched_data()
         }
 
     def get_vue_js_router_including_fetched_data(self):

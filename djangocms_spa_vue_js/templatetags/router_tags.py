@@ -10,12 +10,11 @@ register = template.Library()
 
 @register.simple_tag(takes_context=True)
 def vue_js_router(context):
-    return mark_safe(json.dumps(get_vue_js_router(context=context)))
+    if context.has_key('vue_js_router'):
+        router = context['vue_js_router']
+    else:
+        router = get_vue_js_router(context=context)
 
-
-@register.filter
-def escape_apostrophe(value):
-    """
-    We need to escape apostrophes to prevent JS errors.
-    """
-    return mark_safe(value.replace("'", "&#39;"))
+    router_json = json.dumps(router)
+    escaped_router_json = router_json.replace("'", "&#39;")  # Escape apostrophes to prevent JS errors.
+    return mark_safe(escaped_router_json)

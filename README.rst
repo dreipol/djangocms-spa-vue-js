@@ -44,13 +44,7 @@ Add the URL pattern form the API:
 Render your Vue.js router in your template::
 
     {% load router_tags %}
-    {% block route_data %}
-        {% if vue_js_router %}
-            {{ vue_js_router|escape_apostrophe }}
-        {% else %}
-            {% vue_js_router as router %}{{ router|escape_apostrophe }}
-        {% endif %}
-    {% endblock %}
+    {% vue_js_router %}
 
 
 Plugin
