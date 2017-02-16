@@ -44,13 +44,19 @@ Add the URL pattern form the API:
 Render your Vue.js router in your template::
 
     {% load router_tags %}
-    {% vue_js_router as router %}{{ router|escape_apostrophe }}
+    {% block route_data %}
+        {% if vue_js_router %}
+            {{ vue_js_router|escape_apostrophe }}
+        {% else %}
+            {% vue_js_router as router %}{{ router|escape_apostrophe }}
+        {% endif %}
+    {% endblock %}
 
 
 Plugin
 ------
 
-Your plugins don't need a rendering template but a `render_json_plugin` method that returns a dictionary::
+Your plugins don't need a rendering template but a `render_spa` method that returns a dictionary. To have a clean structure, we usually put the context inside a `content` key of the dictionary::
 
     class TextPlugin(JsonOnlyPluginBase):
         name = _('Text')
@@ -63,6 +69,165 @@ Your plugins don't need a rendering template but a `render_json_plugin` method t
             return context
 
     plugin_pool.register_plugin(TextPlugin)
+
+
+Apphooks
+--------
+
+You need to consider a couple of things when using apphooks. Let's assume you have an event model::
+
+    class Event(DjangocmsVueJsMixin):
+        name = models.CharField(max_length=255, verbose_name=_('Name'))
+
+        def get_frontend_list_data_dict(self, request, editable=False, placeholder_name=''):
+            # Returns the data for your list view.
+            data = super(Event, self).get_frontend_list_data_dict(request=request, editable=editable, placeholder_name=placeholder_name)
+            data['content'].update({
+                'name': self.name,
+            })
+            return data
+
+        def get_frontend_detail_data_dict(self, request, editable=False):
+            # Returns the data for your detail view.
+            data = super(Event, self).get_frontend_detail_data_dict(request, editable)
+
+            # Prepare the content of your model instance. We use the same structure like the placeholder data of a CMS page.
+            content_container = {
+                'type': 'generic',
+                'content': {
+                    'name': self.name
+                }
+            }
+
+            # Add support for the CMS frontend editing
+            if editable:
+                content_container.update(
+                    self.get_cms_placeholder_json(request=request, placeholder_name='cms-plugin-events-content')
+                )
+
+            # Put the data inside a container like any other CMS placeholder data.
+            data['containers']['content'] = content_container
+
+            return data
+
+        def get_absolute_url(self):
+            # Return the URL of your detail view.
+            return reverse('event_detail', kwargs={'pk': self.pk})
+
+        def get_api_detail_url(self):
+            # Return the API URL of your detail view.
+            return reverse('event_detail_api', kwargs={'pk': self.pk})
+
+        def get_detail_view_component(self):
+            # Return the name of your vue component.
+            return 'cmp-event-detail'
+
+        def get_detail_path_pattern(self):
+            # Return the path pattern of your nested vue route.
+            return 'events/:pk'
+
+        def get_url_params(self):
+            # Return the params that are needed to access your nested vue route.
+            return {
+                'pk': self.pk
+            }
+
+
+All of your views need to be attached to the menu, even if they are not actually rendered in your site navigation. Your `cms_menus.py` might looks like this::
+
+    class EventMenu(CMSAttachMenu):
+        name = _('Events')
+
+        def get_nodes(self, request):
+            nodes = []
+            counter = 1
+            is_draft = self.instance.publisher_is_draft
+            is_edit = hasattr(request, 'toolbar') and request.user.is_staff and request.toolbar.edit_mode
+
+            # We don't want to parse the instance in live and draft mode. Depending on the request user we return the
+            # corresponding version.
+            if (not is_edit and not is_draft) or (is_edit and is_draft):
+                # Let's add the list view
+                nodes.append(
+                    NavigationNode(
+                        title='Event List',
+                        url=reverse('event_list'),
+                        id=1,
+                        attr={
+                            'component': 'cmp-event-list',
+                            'vue_js_router_name': 'event-list',
+                            'fetch_url': reverse('event_list_api'),
+                            'absolute_url': reverse('event_list'),
+                            'path_pattern': ':pk',  # Used to group routes (dynamic route matching)
+                            'nest_route': False
+                        }
+                    )
+                )
+                counter += 1
+
+                for event in Event.objects.all():
+                    nodes.append(
+                        NavigationNode(
+                            title=event.name,
+                            url=event.get_absolute_url(),
+                            id=counter,
+                            attr=event.get_cms_menu_node_attributes(),
+                            parent_id=1
+                        )
+                    )
+                    counter += 1
+
+            return nodes
+
+    menu_pool.register_menu(EventMenu)
+
+
+This is an example of a simple template view. Each view that you have needs an API view that returns the JSON data only::
+
+    class ContentMixin(object):
+        template_name = 'index.html'
+
+        def get_context_data(self, **kwargs):
+            data = {
+                'containers': [{'key': 'value'}]
+            }
+            return super(ContentMixin, self).get_context_data(data=data)
+
+
+    class MyTemplateView(ContentMixin, VueRouterView):
+        fetch_url = reverse_lazy('content_api')  # URL of the API view.
+
+
+    class MyTemplateApiView(ContentMixin, VueSpaApiView):
+        pass
+
+
+Your list view looks like this::
+
+    class EventListView(VueRouterListView):
+        fetch_url = reverse_lazy('event_list_api')
+        model = Event
+        template_name = 'event_list.html'
+
+
+    class EventListAPIView(VueListApiView):
+        model = Event
+        template_name = 'event_list.html'
+
+
+Your detail view looks like this::
+
+    class EventDetailView(VueRouterDetailView):
+        model = Event
+        template_name = 'event_detail.html'
+
+        def get_fetch_url(self):
+            return reverse('event_detail_api', kwargs={'pk': self.object.pk})
+
+
+    class EventDetailAPIView(VueDetailApiView):
+        model = Event
+        template_name = 'event_detail.html'
 
 
 The router object
