@@ -10,7 +10,7 @@ register = template.Library()
 
 @register.simple_tag(takes_context=True)
 def vue_js_router(context):
-    if context.has_key('vue_js_router'):
+    if 'vue_js_router' in context:
         router = context['vue_js_router']
     else:
         router = get_vue_js_router(context=context)
