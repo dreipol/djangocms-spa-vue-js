@@ -1,7 +1,7 @@
 from django.conf.urls import url
 
-from .views import CMSPageDetailAPIView
+from .views import VueCmsPageDetailApiView
 
 urlpatterns = [
-    url(r'^pages/(?P<path>.*)$', CMSPageDetailAPIView.as_view(), name='cms_page_detail'),
+    url(r'^pages/(?P<path>.*)$', VueCmsPageDetailApiView.as_view(), name='cms_page_detail'),
 ]
