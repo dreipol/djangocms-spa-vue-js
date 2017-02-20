@@ -80,7 +80,7 @@ class VueJsMenuModifier(Modifier):
         if node.selected and node.url == request.path:
             # Static CMS placeholders and other global page elements (e.g. menu) go into the `partials` dict.
             partial_names = get_partial_names_for_template(template=self.get_node_template_name(node))
-            route['api']['fetched']['data']['partials'] = get_frontend_data_dict_for_partials(
+            route['api']['fetched']['partials'] = get_frontend_data_dict_for_partials(
                 partials=partial_names,
                 request=request,
                 editable=request.user.has_perm('cms.edit_static_placeholder'),

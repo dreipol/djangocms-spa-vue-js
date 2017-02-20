@@ -157,6 +157,11 @@ class VueSpaApiView(APIView):
         data = {
             'data': self.get_fetched_data()
         }
+
+        partials = self.get_partials()
+        if partials:
+            data['partials'] = partials
+
         return HttpResponse(
             content=json.dumps(data),
             content_type='application/json',
@@ -201,10 +206,6 @@ class VueCmsPageDetailApiView(VueSpaApiView):
         if view_data:
             data.update(view_data)
 
-        partials = self.get_partials()
-        if partials:
-            data.update({'partials': partials})
-
         return data
 
     def get_template_names(self):
@@ -219,10 +220,6 @@ class VueListApiView(MultipleObjectSpaMixin, VueSpaApiView):
         if view_data:
             data.update(view_data)
 
-        partials = self.get_partials()
-        if partials:
-            data.update({'partials': partials})
-
         return data
 
 
@@ -233,9 +230,5 @@ class VueDetailApiView(SingleObjectSpaMixin, VueSpaApiView):
         view_data = super(VueDetailApiView, self).get_fetched_data()
         if view_data:
             data.update(view_data)
-
-        partials = self.get_partials()
-        if partials:
-            data.update({'partials': partials})
 
         return data
