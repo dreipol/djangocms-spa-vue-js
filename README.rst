@@ -37,7 +37,7 @@ Add the URL pattern form the API:
 
     urlpatterns = [
         ...
-        url(r'^api/pages/(?P<path>.*)$', CMSPageDetailAPIView.as_view(), name='cms_page_detail'),
+        url(r'^api/', include('djangocms_spa_vue_js.urls', namespace='api')),
         ...
     ]
 

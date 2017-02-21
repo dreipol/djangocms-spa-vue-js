@@ -109,7 +109,12 @@ class VueJsMenuModifier(Modifier):
 
         # Add the link to fetch the data from the API.
         if not cms_page.application_urls:
-            route_data['api']['fetch'] = reverse('api:cms_page_detail', kwargs={'path': cms_page_title.path})
+            if not cms_page_title.path:  # The home page does not have a path
+                fetch_url = reverse('api:cms_page_detail_home', kwargs={'language_code': request.LANGUAGE_CODE})
+            else:
+                fetch_url = reverse('api:cms_page_detail', kwargs={'language_code': request.LANGUAGE_CODE,
+                                                                   'path': cms_page_title.path})
+            route_data['api']['fetch'] = fetch_url
         else:
             # Apphooks use a view that has a custom API URL to fetch data from.
             view = get_view_from_url(node.url)
@@ -127,7 +132,10 @@ class VueJsMenuModifier(Modifier):
                 )
             }
 
-        route_data['path'] = '/%s' % cms_page_title.path
+        if len(settings.LANGUAGES) > 1:
+            route_data['path'] = '/%s/%s' % (request.LANGUAGE_CODE, cms_page_title.path)
+        else:
+            route_data['path'] = '/%s' % cms_page_title.path
 
         return route_data
 
