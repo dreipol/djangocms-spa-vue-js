@@ -30,14 +30,9 @@ Add the URL pattern form the API:
 
 .. code-block:: python
 
-    from django.conf.urls import url
-
-    from djangocms_spa_vue_js.views import CMSPageDetailAPIView
-
-
     urlpatterns = [
         ...
-        url(r'^api/', include('djangocms_spa_vue_js.urls', namespace='api')),
+        url(r'^api/', include('djangocms_spa.urls', namespace='api')),
         ...
     ]
 
@@ -50,7 +45,9 @@ Render your Vue.js router in your template::
 Plugin
 ------
 
-Your plugins don't need a rendering template but a `render_spa` method that returns a dictionary. To have a clean structure, we usually put the context inside a `content` key of the dictionary::
+Your plugins don't need a rendering template but a `render_spa` method that returns a dictionary. To have a clean structure, we usually put the context inside a `content` key of the dictionary:
+
+.. code-block:: python
 
     class TextPlugin(JsonOnlyPluginBase):
         name = _('Text')
@@ -68,7 +65,9 @@ Your plugins don't need a rendering template but a `render_spa` method that retu
 Apphooks
 --------
 
-You need to consider a couple of things when using apphooks. Let's assume you have an event model::
+You need to consider a couple of things when using apphooks. Let's assume you have an event model.
+
+.. code-block:: python
 
     class Event(DjangocmsVueJsMixin):
         name = models.CharField(max_length=255, verbose_name=_('Name'))
@@ -127,7 +126,9 @@ You need to consider a couple of things when using apphooks. Let's assume you ha
             }
 
 
-All of your views need to be attached to the menu, even if they are not actually rendered in your site navigation. Your `cms_menus.py` might looks like this::
+All of your views need to be attached to the menu, even if they are not actually rendered in your site navigation. Your `cms_menus.py` might looks like this:
+
+.. code-block:: python
 
     class EventMenu(CMSAttachMenu):
         name = _('Events')
@@ -176,7 +177,9 @@ All of your views need to be attached to the menu, even if they are not actually
     menu_pool.register_menu(EventMenu)
 
 
-This is an example of a simple template view. Each view that you have needs an API view that returns the JSON data only::
+This is an example of a simple template view. Each view that you have needs an API view that returns the JSON data only.
+
+.. code-block:: python
 
     from djangocms_spa.views import SpaApiView
     from djangocms_spa_vue_js.views import VueRouterView
@@ -206,7 +209,9 @@ This is an example of a simple template view. Each view that you have needs an A
         pass
 
 
-Your list view looks like this::
+Your list view looks like this:
+
+.. code-block:: python
 
     from djangocms_spa.views import SpaListApiView
     from djangocms_spa_vue_js.views import VueRouterListView
@@ -222,7 +227,9 @@ Your list view looks like this::
         template_name = 'event_list.html'
 
 
-Your detail view looks like this::
+Your detail view looks like this:
+
+.. code-block:: python
 
     from djangocms_spa.views import SpaDetailApiView
     from djangocms_spa_vue_js.views import VueRouterDetailView
