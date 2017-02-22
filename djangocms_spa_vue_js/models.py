@@ -1,12 +1,5 @@
-from appconf import AppConf
-
 from djangocms_spa.content_helpers import get_frontend_data_dict_for_placeholders, get_global_placeholder_data
 from djangocms_spa.models import DjangoCmsMixin
-
-
-class DjangocmsSPAVueJsConf(AppConf):
-    DEFAULT_LIST_CONTAINER_NAME = 'object_list'
-    CACHE_TIMEOUT = 60 * 10
 
 
 class DjangocmsVueJsMixin(DjangoCmsMixin):

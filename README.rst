@@ -178,8 +178,11 @@ All of your views need to be attached to the menu, even if they are not actually
 
 This is an example of a simple template view. Each view that you have needs an API view that returns the JSON data only::
 
-    class EventContentMixin(object):
-        template_name = 'pages/content_with_section_navigation.html'
+    from djangocms_spa.views import SpaApiView
+    from djangocms_spa_vue_js.views import VueRouterView
+
+    class ContentMixin(object):
+        template_name = 'index.html'
 
         def get_fetched_data(self):
             data = {
@@ -199,11 +202,14 @@ This is an example of a simple template view. Each view that you have needs an A
         fetch_url = reverse_lazy('content_api')  # URL of the API view.
 
 
-    class MyTemplateApiView(ContentMixin, VueSpaApiView):
+    class MyTemplateApiView(ContentMixin, SpaApiView):
         pass
 
 
 Your list view looks like this::
+
+    from djangocms_spa.views import SpaListApiView
+    from djangocms_spa_vue_js.views import VueRouterListView
 
     class EventListView(VueRouterListView):
         fetch_url = reverse_lazy('event_list_api')
@@ -211,12 +217,15 @@ Your list view looks like this::
         template_name = 'event_list.html'
 
 
-    class EventListAPIView(VueListApiView):
+    class EventListAPIView(SpaListApiView):
         model = Event
         template_name = 'event_list.html'
 
 
 Your detail view looks like this::
+
+    from djangocms_spa.views import SpaDetailApiView
+    from djangocms_spa_vue_js.views import VueRouterDetailView
 
     class EventDetailView(VueRouterDetailView):
         model = Event
@@ -226,7 +235,7 @@ Your detail view looks like this::
             return reverse('event_detail_api', kwargs={'pk': self.object.pk})
 
 
-    class EventDetailAPIView(VueDetailApiView):
+    class EventDetailAPIView(SpaDetailApiView):
         model = Event
         template_name = 'event_detail.html'
 
