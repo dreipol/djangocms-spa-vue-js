@@ -48,11 +48,10 @@ class VueJsMenuModifier(Modifier):
         router_nodes = []
 
         for node in nodes:
+            if node.attr.get('is_page'):
+                node.attr['cms_page'] = Page.objects.get(id=node.id)
+
             if not node.attr.get('nest_route'):
-
-                if node.attr.get('is_page'):
-                    node.attr['cms_page'] = Page.objects.get(id=node.id)
-
                 node_route = self.get_node_route(request, node)
                 if node_route:
                     node.attr['vue_js_route'] = node_route
