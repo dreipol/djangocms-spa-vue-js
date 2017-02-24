@@ -2,10 +2,15 @@
 djangocms-spa-vue-js
 ====================
 
-This package prepares your django CMS and Vue.js project to create a single-page application (SPA).
+This package prepares your django CMS and vue.js project to create a single-page application (SPA). Use it together
+with the base package `djangocms-spa`_.
 
-The first page request needs to include all available routes. A template tag takes care of rendering a
-vue-router list. All other contents like CMS pages or custom views can be requested through a JSON API.
+A template tag renders a list of all available routes that are used by vue-router. Contents of other pages are
+requested asynchronously and delivered as JSON through a REST-API.
+
+Make sure you read the docs of djangocms-spa.
+
+.. _`djangocms-spa`: https://github.com/dreipol/djangocms-spa/
 
 
 Quickstart
@@ -15,7 +20,7 @@ Install djangocms-spa-vue-js::
 
     pip install djangocms-spa-vue-js
 
-Add it to your `INSTALLED_APPS`:
+Add it to your ``INSTALLED_APPS``:
 
 .. code-block:: python
 
@@ -36,30 +41,11 @@ Add the URL pattern form the API:
         ...
     ]
 
-Render your Vue.js router in your template::
+Render your vue.js router in your template::
 
     {% load router_tags %}
     {% vue_js_router %}
 
-
-Plugin
-------
-
-Your plugins don't need a rendering template but a `render_spa` method that returns a dictionary. To have a clean structure, we usually put the context inside a `content` key of the dictionary:
-
-.. code-block:: python
-
-    class TextPlugin(JsonOnlyPluginBase):
-        name = _('Text')
-        model = TextPluginModel
-        frontend_component_name = 'cmp-text'
-
-        def render_spa(self, request, context, instance):
-            context = super(TextPlugin, self).render_spa(request, context, instance)
-            context['content']['text']. = instance.text
-            return context
-
-    plugin_pool.register_plugin(TextPlugin)
 
 
 Apphooks
@@ -126,7 +112,7 @@ You need to consider a couple of things when using apphooks. Let's assume you ha
             }
 
 
-All of your views need to be attached to the menu, even if they are not actually rendered in your site navigation. Your `cms_menus.py` might looks like this:
+All of your views need to be attached to the menu, even if they are not actually rendered in your site navigation. Your ``cms_menus.py`` might looks like this:
 
 .. code-block:: python
 
