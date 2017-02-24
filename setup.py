@@ -47,7 +47,7 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 setup(
     name='djangocms-spa-vue-js',
     version=version,
-    description="""Your project description goes here""",
+    description="""This package prepares your django CMS and vue.js project to create a single-page application (SPA).""",
     long_description=readme + '\n\n' + history,
     author='dreipol GmbH',
     author_email='dev@dreipol.ch',
