@@ -114,6 +114,11 @@ class VueJsMenuModifier(Modifier):
                 fetch_url = reverse('api:cms_page_detail', kwargs={'language_code': request.LANGUAGE_CODE,
                                                                    'path': cms_page_title.path})
             route_data['api']['fetch'] = fetch_url
+
+            # Add redirect url if available.
+            if node.attr.get('redirect_url'):
+                route_data['redirect'] = node.attr['redirect_url']
+
         else:
             # Apphooks use a view that has a custom API URL to fetch data from.
             view = get_view_from_url(node.url)
