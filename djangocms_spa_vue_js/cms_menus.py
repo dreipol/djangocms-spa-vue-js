@@ -30,7 +30,7 @@ class VueJsMenuModifier(Modifier):
     def get_node_template_name(node):
         view = get_view_from_url(node.url)
         if view.__module__ == 'cms.views':
-            return node.attr.get('template')
+            return node.attr.get('template', node.attr.get('cms_page').get_template())
         else:
             return view.template_name
 
