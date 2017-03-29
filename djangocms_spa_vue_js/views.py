@@ -21,7 +21,7 @@ class VueRouterView(TemplateView):
         }
 
     def get_vue_js_router_including_fetched_data(self):
-        vue_js_router = get_vue_js_router(request=self.request)
+        vue_js_router = self.get_vue_js_router(request=self.request)
 
         # Put the context data of this view into the active route.
         active_route = self.get_active_route(vue_js_router['routes'])
@@ -31,6 +31,9 @@ class VueRouterView(TemplateView):
             )
 
         return vue_js_router
+
+    def get_vue_js_router(self, request):
+        return get_vue_js_router(request=request)
 
     def get_fetched_data(self):
         # Override this method if you need further context data.
