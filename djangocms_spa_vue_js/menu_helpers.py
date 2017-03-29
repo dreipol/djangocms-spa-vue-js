@@ -1,10 +1,11 @@
 from django.conf import settings
 from django.urls import reverse
 from django.utils.encoding import force_text
-from djangocms_spa.utils import get_view_from_url, get_frontend_component_name_by_template
+from menus.menu_pool import menu_pool
+
 from djangocms_spa.content_helpers import (get_frontend_data_dict_for_cms_page, get_frontend_data_dict_for_partials,
                                            get_partial_names_for_template)
-from menus.menu_pool import menu_pool
+from djangocms_spa.utils import get_frontend_component_name_by_template, get_view_from_url
 
 from .router_helpers import get_vue_js_router_name_for_cms_page
 
