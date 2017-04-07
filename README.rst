@@ -348,7 +348,7 @@ If you need to debug the router object, this middleware is probably pretty helpf
 .. code-block:: python
 
     MIDDLEWARE += (
-        'djangocms_spa_vue_js.middleware.RouterDebuggingMiddleware'
+        'djangocms_spa_vue_js.middleware.RouterDebuggingMiddleware',
     )
 
 
