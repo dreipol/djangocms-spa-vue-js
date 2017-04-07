@@ -340,6 +340,18 @@ A template tag renders a JS object like this.
     }
 
 
+Debugging
+---------
+
+If you need to debug the router object, this middleware is probably pretty helpful:
+
+.. code-block:: python
+
+    MIDDLEWARE += (
+        'djangocms_spa_vue_js.middleware.RouterDebuggingMiddleware'
+    )
+
+
 Credits
 -------
 
