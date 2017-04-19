@@ -43,7 +43,10 @@ def get_menu_renderer(context=None, request=None):
 
 
 def get_node_template_name(node):
-    view = get_view_from_url(node.url)
+    try:
+        view = get_view_from_url(node.url)
+    except AttributeError:
+        return settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
     if view.__module__ == 'cms.views':
         template = node.attr.get('template')
         if not template:

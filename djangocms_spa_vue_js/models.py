@@ -1,5 +1,11 @@
+from appconf import AppConf
+from django.views.defaults import ERROR_404_TEMPLATE_NAME
 from djangocms_spa.content_helpers import get_frontend_data_dict_for_placeholders, get_global_placeholder_data
 from djangocms_spa.models import DjangoCmsMixin
+
+
+class DjangoCmsSPAVueJSConf(AppConf):
+    ERROR_404_TEMPLATE = ERROR_404_TEMPLATE_NAME
 
 
 class DjangocmsVueJsMixin(DjangoCmsMixin):
