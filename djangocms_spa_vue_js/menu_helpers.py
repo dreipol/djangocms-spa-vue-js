@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.urls import reverse
+from django.urls import reverse, Resolver404
 from django.utils.encoding import force_text
 from menus.menu_pool import menu_pool
 
@@ -45,7 +45,7 @@ def get_menu_renderer(context=None, request=None):
 def get_node_template_name(node):
     try:
         view = get_view_from_url(node.url)
-    except AttributeError:
+    except (AttributeError, Resolver404):
         return settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
     if view.__module__ == 'cms.views':
         template = node.attr.get('template')
