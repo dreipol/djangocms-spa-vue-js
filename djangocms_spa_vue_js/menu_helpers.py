@@ -70,7 +70,7 @@ def get_node_route(request, node, renderer):
     if node.selected and node.url == request.path:
         # Static CMS placeholders and other global page elements (e.g. menu) go into the `partials` dict.
         partial_names = get_partial_names_for_template(template=get_node_template_name(node))
-        route['api']['fetched']['partials'] = get_frontend_data_dict_for_partials(
+        route['api']['fetched']['response']['partials'] = get_frontend_data_dict_for_partials(
             partials=partial_names,
             request=request,
             editable=request.user.has_perm('cms.edit_static_placeholder'),
@@ -84,7 +84,7 @@ def get_node_route(request, node, renderer):
     except KeyError:
         partials = []
     if partials:
-        route_data['api'].setdefault('query', {}).update({'partials': partials})
+        route_data['api']['fetch'].setdefault('query', {}).update({'partials': partials})
 
     return route
 
@@ -105,7 +105,9 @@ def get_node_route_for_cms_page(request, node, route_data):
         else:
             fetch_url = reverse('api:cms_page_detail', kwargs={'language_code': request.LANGUAGE_CODE,
                                                                'path': cms_page_title.path})
-        route_data['api']['fetch'] = fetch_url
+        route_data['api']['fetch'] = {
+            'url': fetch_url
+        }
 
         # Add redirect url if available.
         if node.attr.get('redirect_url'):
@@ -120,12 +122,14 @@ def get_node_route_for_cms_page(request, node, route_data):
     # Add initial data for the selected page.
     if node.selected and node.url == request.path:
         route_data['api']['fetched'] = {
-            'data': get_frontend_data_dict_for_cms_page(
-                cms_page=cms_page,
-                cms_page_title=cms_page_title,
-                request=request,
-                editable=request.user.has_perm('cms.change_page')
-            )
+            'response': {
+                'data': get_frontend_data_dict_for_cms_page(
+                    cms_page=cms_page,
+                    cms_page_title=cms_page_title,
+                    request=request,
+                    editable=request.user.has_perm('cms.change_page')
+                )
+            }
         }
 
     if len(settings.LANGUAGES) > 1:
@@ -147,7 +151,9 @@ def get_node_route_for_app_model(request, node, route_data):
     # We need to prepare the initial structure of the fetched data. The actual data is added by the view.
     if request.path == node.attr.get('absolute_url'):
         route_data['api']['fetched'] = {
-            'data': {}
+            'response': {
+                'data': {}
+            }
         }
         route_data['params'] = node.attr.get('url_params', {})
 

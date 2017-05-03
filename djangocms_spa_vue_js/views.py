@@ -26,7 +26,7 @@ class VueRouterView(TemplateView):
         # Put the context data of this view into the active route.
         active_route = self.get_active_route(vue_js_router['routes'])
         if active_route:
-            active_route['api']['fetched']['data'].update(
+            active_route['api']['fetched']['response']['data'].update(
                 self.get_fetched_data()
             )
 
