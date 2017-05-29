@@ -102,6 +102,9 @@ def get_node_route_for_cms_page(request, node, route_data):
     if not cms_page.application_urls:
         if not cms_page_title.path:  # The home page does not have a path
             fetch_url = reverse('api:cms_page_detail_home', kwargs={'language_code': request.LANGUAGE_CODE})
+        elif node.attr.get('nest_route'):
+            fetch_url = '{parent_url}{path_pattern}/'.format(parent_url=node.parent.url,
+                                                             path_pattern=node.attr.get('path_pattern'))
         else:
             fetch_url = reverse('api:cms_page_detail', kwargs={'language_code': request.LANGUAGE_CODE,
                                                                'path': cms_page_title.path})
@@ -161,7 +164,7 @@ def get_node_route_for_app_model(request, node, route_data):
     return route_data
 
 
-def get_node_route_children(node, request):
+def get_node_route_children(node, request, renderer):
     """
     Child nodes usually share components with each other. Let's assume having a news app. The list view shares
     some components with its detail pages. All detail pages look exactly the same. Using the `nested` feature of
@@ -176,13 +179,13 @@ def get_node_route_children(node, request):
             child_path_pattern = child_node.attr.get('path_pattern')
 
             if not child_path_pattern or child_path_pattern not in children_path_patterns:
-                child_route = get_node_route(request, child_node)
+                child_route = get_node_route(request, child_node, renderer)
                 child_route['path'] = child_path_pattern
                 children.append(child_route)
                 children_path_patterns.append(child_path_pattern)
             elif child_path_pattern in children_path_patterns and child_node.url == request.path:
                 i = child_path_pattern.index(child_path_pattern)
-                children[i] = get_node_route(request, child_node)
+                children[i] = get_node_route(request, child_node, renderer)
                 children[i]['path'] = child_path_pattern
 
     return children

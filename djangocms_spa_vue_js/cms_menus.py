@@ -45,7 +45,7 @@ class VueJsMenuModifier(Modifier):
 
         # To make sure all menu modifiers are handled, we parse the nested children in a second step.
         for router_node in router_nodes:
-            children = get_node_route_children(node=router_node, request=request)
+            children = get_node_route_children(node=router_node, request=request, renderer=self.renderer)
             if children:
                 router_node.attr['vue_js_route']['children'] = children
 
