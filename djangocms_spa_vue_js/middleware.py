@@ -8,5 +8,8 @@ class RouterDebuggingMiddleware(object):
         self.get_response = get_response
 
     def __call__(self, request):
-        vue_js_router = get_vue_js_router(request=request)
-        return JsonResponse(vue_js_router)
+        if request.user.is_authenticated():
+            return self.get_response(request)
+        else:
+            vue_js_router = get_vue_js_router(request=request)
+            return JsonResponse(vue_js_router)

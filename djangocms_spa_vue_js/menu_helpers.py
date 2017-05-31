@@ -86,6 +86,9 @@ def get_node_route(request, node, renderer):
     if partials:
         route_data['api']['fetch'].setdefault('query', {}).update({'partials': partials})
 
+    if node.attr.get('redirect_url'):
+        del route_data['api']
+
     return route
 
 
@@ -95,8 +98,9 @@ def get_node_route_for_cms_page(request, node, route_data):
     cms_template = cms_page.get_template()
 
     # Set name and component of the route.
-    route_data['component'] = get_frontend_component_name_by_template(cms_template)
     route_data['name'] = get_vue_js_router_name_for_cms_page(cms_page.pk)
+    if not node.attr.get('redirect_url'):
+        route_data['component'] = get_frontend_component_name_by_template(cms_template)
 
     # Add the link to fetch the data from the API.
     if not cms_page.application_urls:
