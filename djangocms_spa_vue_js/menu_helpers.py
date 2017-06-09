@@ -107,7 +107,11 @@ def get_node_route_for_cms_page(request, node, route_data):
         if not cms_page_title.path:  # The home page does not have a path
             fetch_url = reverse('api:cms_page_detail_home', kwargs={'language_code': request.LANGUAGE_CODE})
         elif node.attr.get('nest_route'):
-            fetch_url = '{parent_url}{path_pattern}/'.format(parent_url=node.parent.url,
+            # Get the fetch_url of the parent node through the path of the parent node
+            parent_node_path = cms_page_title.path.replace('/%s' % cms_page_title.slug, '')
+            fetch_url_of_parent_node = reverse('api:cms_page_detail', kwargs={'language_code': request.LANGUAGE_CODE,
+                                                                              'path': parent_node_path})
+            fetch_url = '{parent_url}{path_pattern}/'.format(parent_url=fetch_url_of_parent_node,
                                                              path_pattern=node.attr.get('path_pattern'))
         else:
             fetch_url = reverse('api:cms_page_detail', kwargs={'language_code': request.LANGUAGE_CODE,
@@ -128,7 +132,7 @@ def get_node_route_for_cms_page(request, node, route_data):
 
     # Add initial data for the selected page.
     if node.selected and node.url == request.path:
-        route_data['api']['fetched'] = {
+        fetched_data = {
             'response': {
                 'data': get_frontend_data_dict_for_cms_page(
                     cms_page=cms_page,
@@ -138,6 +142,16 @@ def get_node_route_for_cms_page(request, node, route_data):
                 )
             }
         }
+        if node.attr.get('nest_route'):
+            url_param = node.attr.get('path_pattern', '')
+            url_param = url_param.replace(':', '')
+            if url_param:
+                fetched_data.update({
+                    'params': {
+                        url_param: cms_page_title.slug
+                    }
+                })
+        route_data['api']['fetched'] = fetched_data
 
     if len(settings.LANGUAGES) > 1:
         route_data['path'] = '/%s/%s' % (request.LANGUAGE_CODE, cms_page_title.path)
@@ -166,30 +180,3 @@ def get_node_route_for_app_model(request, node, route_data):
 
     route_data['path'] = node.url
     return route_data
-
-
-def get_node_route_children(node, request, renderer):
-    """
-    Child nodes usually share components with each other. Let's assume having a news app. The list view shares
-    some components with its detail pages. All detail pages look exactly the same. Using the `nested` feature of
-    vue-router, we add one generic route rather than adding all detail pages. Therefor we need to use a generic
-    `path` (e.g. `:slug`) that we get from the nodes `path_pattern` property.
-    """
-    children = []
-    children_path_patterns = []
-    for child_node in node.children:
-
-        if child_node.attr.get('nest_route'):
-            child_path_pattern = child_node.attr.get('path_pattern')
-
-            if not child_path_pattern or child_path_pattern not in children_path_patterns:
-                child_route = get_node_route(request, child_node, renderer)
-                child_route['path'] = child_path_pattern
-                children.append(child_route)
-                children_path_patterns.append(child_path_pattern)
-            elif child_path_pattern in children_path_patterns and child_node.url == request.path:
-                i = child_path_pattern.index(child_path_pattern)
-                children[i] = get_node_route(request, child_node, renderer)
-                children[i]['path'] = child_path_pattern
-
-    return children

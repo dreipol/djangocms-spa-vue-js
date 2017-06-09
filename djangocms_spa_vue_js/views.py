@@ -52,11 +52,6 @@ class VueRouterView(TemplateView):
             if is_active_route:
                 return route
 
-            if route.get('children'):
-                active_route = self.get_active_route(route['children'])
-                if active_route:
-                    return active_route
-
         return None
 
     def get_fetch_url(self):
