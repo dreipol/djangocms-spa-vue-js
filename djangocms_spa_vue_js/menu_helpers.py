@@ -105,17 +105,15 @@ def get_node_route_for_cms_page(request, node, route_data):
     # Add the link to fetch the data from the API.
     if not cms_page.application_urls:
         if not cms_page_title.path:  # The home page does not have a path
-            fetch_url = reverse('api:cms_page_detail_home', kwargs={'language_code': request.LANGUAGE_CODE})
+            fetch_url = reverse('api:cms_page_detail_home')
         elif node.attr.get('nest_route'):
             # Get the fetch_url of the parent node through the path of the parent node
             parent_node_path = cms_page_title.path.replace('/%s' % cms_page_title.slug, '')
-            fetch_url_of_parent_node = reverse('api:cms_page_detail', kwargs={'language_code': request.LANGUAGE_CODE,
-                                                                              'path': parent_node_path})
+            fetch_url_of_parent_node = reverse('api:cms_page_detail', kwargs={'path': parent_node_path})
             fetch_url = '{parent_url}{path_pattern}/'.format(parent_url=fetch_url_of_parent_node,
                                                              path_pattern=node.attr.get('path_pattern'))
         else:
-            fetch_url = reverse('api:cms_page_detail', kwargs={'language_code': request.LANGUAGE_CODE,
-                                                               'path': cms_page_title.path})
+            fetch_url = reverse('api:cms_page_detail', kwargs={'path': cms_page_title.path})
         route_data['api']['fetch'] = {
             'url': fetch_url
         }
