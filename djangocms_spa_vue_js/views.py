@@ -48,7 +48,7 @@ class VueRouterView(TemplateView):
 
     def get_active_route(self, routes):
         for route in routes:
-            is_active_route = 'fetched' in route['api']
+            is_active_route = 'api' in route and 'fetched' in route['api']
             if is_active_route:
                 return route
 
