@@ -43,10 +43,10 @@ class VueJsMenuModifier(Modifier):
                 path_pattern = node.attr.get('path_pattern')
 
                 if not path_pattern or path_pattern not in path_patterns.keys():
-                    node_route['path'] = '{parent_url}{path_pattern}/'.format(parent_url=node.parent.url,
+                    node_route['path'] = '{parent_url}{path_pattern}/'.format(parent_url=node.parent.get_absolute_url(),
                                                                               path_pattern=path_pattern)
                     path_patterns[path_pattern] = len(router_nodes)  # Store the index of this route in the list
-                elif path_pattern in path_patterns and node.url == request.path:
+                elif path_pattern in path_patterns and node.get_absolute_url() == request.path:
                     index_of_first_nested_route = path_patterns[path_pattern]
                     router_nodes[index_of_first_nested_route]['vue_js_route']['path'] = path_pattern
                     continue  # Just set a more detailed path on the processed path of the same pattern

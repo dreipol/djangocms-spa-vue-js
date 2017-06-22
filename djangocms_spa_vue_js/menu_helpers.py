@@ -44,7 +44,7 @@ def get_menu_renderer(context=None, request=None):
 
 def get_node_template_name(node):
     try:
-        view = get_view_from_url(node.url)
+        view = get_view_from_url(node.get_absolute_url())
     except (AttributeError, Resolver404):
         return settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
     if view.__module__ == 'cms.views':
@@ -67,7 +67,7 @@ def get_node_route(request, node, renderer):
     else:
         route = get_node_route_for_app_model(request, node, route_data)
 
-    if node.selected and node.url == request.path:
+    if node.selected and node.get_absolute_url() == request.path:
         # Static CMS placeholders and other global page elements (e.g. menu) go into the `partials` dict.
         partial_names = get_partial_names_for_template(template=get_node_template_name(node))
         route['api']['fetched']['response']['partials'] = get_frontend_data_dict_for_partials(
@@ -124,12 +124,12 @@ def get_node_route_for_cms_page(request, node, route_data):
 
     else:
         # Apphooks use a view that has a custom API URL to fetch data from.
-        view = get_view_from_url(node.url)
+        view = get_view_from_url(node.get_absolute_url())
         fetch_url = force_text(view().get_fetch_url())
         route_data['api']['fetch'] = fetch_url
 
     # Add initial data for the selected page.
-    if node.selected and node.url == request.path:
+    if node.selected and node.get_absolute_url() == request.path:
         fetched_data = {
             'response': {
                 'data': get_frontend_data_dict_for_cms_page(
@@ -176,5 +176,5 @@ def get_node_route_for_app_model(request, node, route_data):
         }
         route_data['params'] = node.attr.get('url_params', {})
 
-    route_data['path'] = node.url
+    route_data['path'] = node.get_absolute_url()
     return route_data
