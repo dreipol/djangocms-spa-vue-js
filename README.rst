@@ -140,7 +140,8 @@ All of your views need to be attached to the menu, even if they are not actually
                             'fetch_url': reverse('event_list_api'),
                             'absolute_url': reverse('event_list'),
                             'path_pattern': ':pk',  # Used to group routes (dynamic route matching)
-                            'nest_route': False
+                            'nest_route': False,
+                            'login_required': True  # Hide a navigation node for unauthorized users
                         }
                     )
                 )

@@ -35,6 +35,9 @@ class VueJsMenuModifier(Modifier):
         path_patterns = {}
 
         for node in nodes:
+            if node.attr.get('login_required') and not request.user.is_authenticated:
+                continue
+
             if node.attr.get('is_page'):
                 node.attr['cms_page'] = Page.objects.get(id=node.id)
 
