@@ -168,7 +168,7 @@ def get_node_route_for_app_model(request, node, route_data):
     route_data['api']['fetch'] = node.attr.get('fetch_url')
 
     # We need to prepare the initial structure of the fetched data. The actual data is added by the view.
-    if request.path == node.attr.get('absolute_url'):
+    if request.path == node.get_absolute_url():
         route_data['api']['fetched'] = {
             'response': {
                 'data': {}
