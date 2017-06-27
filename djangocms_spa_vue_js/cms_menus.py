@@ -1,4 +1,5 @@
 from cms.models import Page
+from django.utils.text import slugify
 from menus.base import Modifier
 from menus.menu_pool import menu_pool
 
@@ -32,7 +33,7 @@ class VueJsMenuModifier(Modifier):
             self.renderer.vue_js_structure_started = True
 
         router_nodes = []
-        path_patterns = {}
+        named_route_path_patterns = {}
 
         for node in nodes:
             if node.attr.get('login_required') and not request.user.is_authenticated:
@@ -42,19 +43,27 @@ class VueJsMenuModifier(Modifier):
                 node.attr['cms_page'] = Page.objects.get(id=node.id)
 
             node_route = get_node_route(request=request, node=node, renderer=self.renderer)
-            if node.attr.get('nest_route'):
-                path_pattern = node.attr.get('path_pattern')
 
-                if not path_pattern or path_pattern not in path_patterns.keys():
-                    node_route['path'] = '{parent_url}{path_pattern}/'.format(parent_url=node.parent.get_absolute_url(),
-                                                                              path_pattern=path_pattern)
-                    path_patterns[path_pattern] = len(router_nodes)  # Store the index of this route in the list
-                elif path_pattern in path_patterns and node.get_absolute_url() == request.path:
-                    index_of_first_nested_route = path_patterns[path_pattern]
-                    router_nodes[index_of_first_nested_route]['vue_js_route']['path'] = path_pattern
-                    continue  # Just set a more detailed path on the processed path of the same pattern
+            named_route_path_pattern = node.attr.get('named_route_path_pattern')
+            if named_route_path_pattern:
+                # Override the path with the pattern (e.g. 'parent/foo' to 'parent/:my_path_pattern')
+                path = '{parent_url}{path_pattern}/'.format(parent_url=node.parent.get_absolute_url(),
+                                                            path_pattern=named_route_path_pattern)
+                node_route['path'] = path
+                node_route['name'] = slugify(path)  # Use the same name for all nodes of this route.
+
+                if named_route_path_pattern not in named_route_path_patterns.keys():
+                    # Store the index of this route in a dict of patterns. We need this to be able to override the
+                    # named route with the selected node (see the next condition).
+                    named_route_path_patterns[named_route_path_pattern] = len(router_nodes)
+                elif node.selected:
+                    # Update the router config with the fetched data of the selected node.
+                    index_of_first_named_route = named_route_path_patterns[named_route_path_pattern]
+                    node.attr['vue_js_route'] = node_route
+                    router_nodes[index_of_first_named_route] = node
+                    continue  # Skip this iteration, we don't need to add a named route twice.
                 else:
-                    continue  # Ignore nested routes with a path pattern that was already processed
+                    continue  # Ignore named routes for path patterns that have already been processed.
 
             node.attr['vue_js_route'] = node_route
             router_nodes.append(node)

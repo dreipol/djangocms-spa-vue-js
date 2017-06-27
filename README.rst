@@ -102,11 +102,11 @@ You need to consider a couple of things when using apphooks. Let's assume you ha
             return 'cmp-event-detail'
 
         def get_detail_path_pattern(self):
-            # Return the path pattern of your nested vue route.
+            # Return the path pattern of your named vue route.
             return 'events/:pk'
 
         def get_url_params(self):
-            # Return the params that are needed to access your nested vue route.
+            # Return the params that are needed to access your named vue route.
             return {
                 'pk': self.pk
             }
@@ -139,8 +139,7 @@ All of your views need to be attached to the menu, even if they are not actually
                             'vue_js_router_name': 'event-list',
                             'fetch_url': reverse('event_list_api'),
                             'absolute_url': reverse('event_list'),
-                            'path_pattern': ':pk',  # Used to group routes (dynamic route matching)
-                            'nest_route': False,
+                            'named_route_path_pattern': ':pk',  # Used to group routes (dynamic route matching)
                             'login_required': True  # Hide a navigation node for unauthorized users
                         }
                     )

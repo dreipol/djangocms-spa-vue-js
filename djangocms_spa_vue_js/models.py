@@ -66,9 +66,8 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
             'vue_js_router_name': self.vue_js_router_name,
             'absolute_url': self.get_absolute_url(),
             'fetch_url': self.get_api_detail_url(),
-            'path_pattern': self.get_detail_path_pattern(),
+            'named_route_path_pattern': self.get_detail_path_pattern(),
             'url_params': self.get_url_params(),
-            'nest_route': True
         }
 
     def get_absolute_url(self):

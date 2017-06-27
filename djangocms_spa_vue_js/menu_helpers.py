@@ -106,12 +106,12 @@ def get_node_route_for_cms_page(request, node, route_data):
     if not cms_page.application_urls:
         if not cms_page_title.path:  # The home page does not have a path
             fetch_url = reverse('api:cms_page_detail_home')
-        elif node.attr.get('nest_route'):
+        elif node.attr.get('named_route_path_pattern'):
             # Get the fetch_url of the parent node through the path of the parent node
             parent_node_path = cms_page_title.path.replace('/%s' % cms_page_title.slug, '')
             fetch_url_of_parent_node = reverse('api:cms_page_detail', kwargs={'path': parent_node_path})
             fetch_url = '{parent_url}{path_pattern}/'.format(parent_url=fetch_url_of_parent_node,
-                                                             path_pattern=node.attr.get('path_pattern'))
+                                                             path_pattern=node.attr.get('named_route_path_pattern'))
         else:
             fetch_url = reverse('api:cms_page_detail', kwargs={'path': cms_page_title.path})
         route_data['api']['fetch'] = {
@@ -140,9 +140,8 @@ def get_node_route_for_cms_page(request, node, route_data):
                 )
             }
         }
-        if node.attr.get('nest_route'):
-            url_param = node.attr.get('path_pattern', '')
-            url_param = url_param.replace(':', '')
+        if node.attr.get('named_route_path_pattern'):
+            url_param = node.attr['named_route_path_pattern'].replace(':', '')
             if url_param:
                 fetched_data.update({
                     'params': {
