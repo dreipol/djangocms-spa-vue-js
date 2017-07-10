@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.views.generic import TemplateView
 
@@ -10,10 +11,14 @@ from .menu_helpers import get_vue_js_router
 
 class VueRouterView(TemplateView):
     fetch_url = None
+    add_language_code = len(settings.LANGUAGES) > 1
 
     @cache_view
     def dispatch(self, request, **kwargs):
         return super(VueRouterView, self).dispatch(request, **kwargs)
+
+    def get_cache_key(self):
+        return None
 
     def get_context_data(self, **kwargs):
         return {
