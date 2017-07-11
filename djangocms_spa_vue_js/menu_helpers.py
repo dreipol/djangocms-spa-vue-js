@@ -126,7 +126,9 @@ def get_node_route_for_cms_page(request, node, route_data):
         # Apphooks use a view that has a custom API URL to fetch data from.
         view = get_view_from_url(node.get_absolute_url())
         fetch_url = force_text(view().get_fetch_url())
-        route_data['api']['fetch'] = fetch_url
+        route_data['api']['fetch'] = {
+            'url': fetch_url
+        }
 
     # Add initial data for the selected page.
     if node.selected and node.get_absolute_url() == request.path:
@@ -164,7 +166,9 @@ def get_node_route_for_app_model(request, node, route_data):
     route_data['name'] = node.attr.get('vue_js_router_name')
 
     # Add the link to fetch the data from the API.
-    route_data['api']['fetch'] = node.attr.get('fetch_url')
+    route_data['api']['fetch'] = {
+        'url': node.attr.get('fetch_url')
+    }
 
     # We need to prepare the initial structure of the fetched data. The actual data is added by the view.
     if request.path == node.get_absolute_url():
