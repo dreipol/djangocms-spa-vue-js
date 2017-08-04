@@ -6,6 +6,7 @@ from djangocms_spa.models import DjangoCmsMixin
 
 class DjangoCmsSPAVueJSConf(AppConf):
     ERROR_404_TEMPLATE = ERROR_404_TEMPLATE_NAME
+    APPHOOKS_WITH_ROOT_URL = []  # list of apphooks that use a custom view on the root url (e.g. "/en/<app_hook_page>/")
 
 
 class DjangocmsVueJsMixin(DjangoCmsMixin):

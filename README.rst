@@ -112,7 +112,15 @@ You need to consider a couple of things when using apphooks. Let's assume you ha
             }
 
 
-All of your views need to be attached to the menu, even if they are not actually rendered in your site navigation. Your ``cms_menus.py`` might looks like this:
+All of your views need to be attached to the menu, even if they are not actually rendered in your site navigation.
+If the CMS page holding your apphook uses a custom view, you need this configuration:
+
+.. code-block:: python
+
+    DJANGOCMS_SPA_VUE_JS_APPHOOKS_WITH_ROOT_URL = ['<my_apphook_name>']
+
+
+Your ``cms_menus.py`` might looks like this:
 
 .. code-block:: python
 

@@ -103,7 +103,7 @@ def get_node_route_for_cms_page(request, node, route_data):
         route_data['component'] = get_frontend_component_name_by_template(cms_template)
 
     # Add the link to fetch the data from the API.
-    if not cms_page.application_urls:
+    if cms_page.application_urls not in settings.DJANGOCMS_SPA_VUE_JS_APPHOOKS_WITH_ROOT_URL:
         if not cms_page_title.path:  # The home page does not have a path
             fetch_url = reverse('api:cms_page_detail_home')
         elif node.attr.get('named_route_path_pattern'):
