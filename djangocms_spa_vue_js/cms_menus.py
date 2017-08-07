@@ -46,9 +46,13 @@ class VueJsMenuModifier(Modifier):
 
             named_route_path_pattern = node.attr.get('named_route_path_pattern')
             if named_route_path_pattern:
-                # Override the path with the pattern (e.g. 'parent/foo' to 'parent/:my_path_pattern')
-                path = '{parent_url}{path_pattern}/'.format(parent_url=node.parent.get_absolute_url(),
-                                                            path_pattern=named_route_path_pattern)
+                named_route_path = node.attr.get('named_route_path')
+                if named_route_path:
+                    path = named_route_path
+                else:
+                    # Override the path with the pattern (e.g. 'parent/foo' to 'parent/:my_path_pattern')
+                    path = '{parent_url}{path_pattern}/'.format(parent_url=node.parent.get_absolute_url(),
+                                                                path_pattern=named_route_path_pattern)
                 node_route['path'] = path
                 node_route['name'] = slugify(path)  # Use the same name for all nodes of this route.
 

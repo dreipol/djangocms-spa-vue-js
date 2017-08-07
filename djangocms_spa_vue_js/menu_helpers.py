@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.urls import reverse, Resolver404
+from django.urls import Resolver404, reverse, resolve
 from django.utils.encoding import force_text
 from menus.menu_pool import menu_pool
 
@@ -170,8 +170,11 @@ def get_node_route_for_app_model(request, node, route_data):
         'url': node.attr.get('fetch_url')
     }
 
-    # We need to prepare the initial structure of the fetched data. The actual data is added by the view.
-    if request.path == node.get_absolute_url():
+    request_url_name = resolve(request.path).url_name
+    node_url_name = resolve(node.get_absolute_url()).url_name
+    is_selected_node = request.path == node.get_absolute_url() or request_url_name == node_url_name
+    if is_selected_node:
+        # We need to prepare the initial structure of the fetched data. The actual data is added by the view.
         route_data['api']['fetched'] = {
             'response': {
                 'data': {}
