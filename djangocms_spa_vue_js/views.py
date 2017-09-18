@@ -35,6 +35,10 @@ class VueRouterView(TemplateView):
                 self.get_fetched_data()
             )
 
+            url_params_for_active_route = self.get_url_params_for_active_route()
+            if url_params_for_active_route:
+                active_route['api']['fetched']['params'] = url_params_for_active_route
+
         return vue_js_router
 
     def get_vue_js_router(self, request):
@@ -64,6 +68,9 @@ class VueRouterView(TemplateView):
             return self.fetch_url
         else:
             raise ImproperlyConfigured('No fetch URL to get the data. Provide a fetch_url.')
+
+    def get_url_params_for_active_route(self):
+        return {}
 
 
 class VueRouterListView(MultipleObjectSpaMixin, VueRouterView):
