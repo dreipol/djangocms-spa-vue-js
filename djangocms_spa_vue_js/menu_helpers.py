@@ -50,7 +50,10 @@ def get_node_template_name(node):
     if view.__module__ == 'cms.views':
         template = node.attr.get('template')
         if not template:
-            template = node.attr.get('cms_page').get_template()
+            try:
+                template = node.attr.get('cms_page').get_template()
+            except:
+                template = settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
         return template
     else:
         return view.template_name
