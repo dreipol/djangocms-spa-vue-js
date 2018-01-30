@@ -70,6 +70,9 @@ def get_node_route(request, node, renderer):
     else:
         route = get_node_route_for_app_model(request, node, route_data)
 
+    if not node.attr.get('use_cache', True):
+        route['api']['fetch']['useCache'] = False
+
     if node.selected and node.get_absolute_url() == request.path:
         # Static CMS placeholders and other global page elements (e.g. menu) go into the `partials` dict.
         partial_names = get_partial_names_for_template(template=get_node_template_name(node))
@@ -129,7 +132,6 @@ def get_node_route_for_cms_page(request, node, route_data):
 
     route_data['api']['fetch'] = {
         'url': fetch_url,
-        'cache': bool(node.attr['cache']) if 'cache' in node.attr.keys() else True
     }
 
     # Add initial data for the selected page.
@@ -170,7 +172,6 @@ def get_node_route_for_app_model(request, node, route_data):
     # Add the link to fetch the data from the API.
     route_data['api']['fetch'] = {
         'url': node.attr.get('fetch_url'),
-        'cache': bool(node.attr['cache']) if 'cache' in node.attr.keys() else True
     }
 
     request_url_name = resolve(request.path).url_name
