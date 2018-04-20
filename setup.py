@@ -57,7 +57,7 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        'djangorestframework==3.5.3'
+        'djangocms-spa'
     ],
     license="MIT",
     zip_safe=False,
