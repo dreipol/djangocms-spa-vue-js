@@ -21,11 +21,13 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
     json output for either list or detail view.
     """
 
-    # Configs used to generate vue specific stuff
+    # Configs used to generate vue specific stuff. route_patterns has to be a list
+    # with tuples where index 0 matches a parameter from route_parameters and
+    # index 1 a vue route pattern like :model to replace.
     vue_config = {
         'router_name': 'app-model',
         'router_component': 'model-detail',
-        'route_pattern': ':model',
+        'route_patterns': [('slug', ':model')],
     }
 
     # Config dict holding the route groups indexed by group name. Each group contains different
@@ -61,15 +63,14 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
         }
 
     @classmethod
-    def menu_node_attributes(cls) -> dict:
-        # TODO: parameter for group and view
+    def menu_node_attributes(cls, view: str = 'detail') -> dict:
         """ Get additional attributes for custom NavigationNode """
         return {
             'component': cls.vue_config['router_component'],
             'vue_js_router_name': cls.vue_config['router_name'],
-            'named_route_path_pattern': cls.vue_config['route_pattern'],
-            'named_route_path': cls._vue_pattern_url(group='api', view='detail'),
-            'fetch_url': cls._vue_pattern_url(group='normal', view='detail'),
+            'named_route_path_patterns': dict(cls.vue_config['route_patterns']),
+            'named_route_path': cls._vue_pattern_url(group='api', view=view),
+            'fetch_url': cls._vue_pattern_url(group='normal', view=view),
         }
 
     def get_frontend_list_data_dict(
@@ -131,7 +132,7 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
         cls,
         group: str,
         view: str,
-        model: object = None,
+        model=None,
         language: str = None
     ) -> str:
         """
@@ -139,7 +140,6 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
         is then used to generate the correct kwargs parameters for reverse().
         """
         language = language or get_language()
-
         route_name = cls.routes[group][view]
 
         with override(language):
@@ -156,33 +156,44 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
         Since we don't want to print hundreds of detail model urls in the frontend, we can generate routes à la
         en/api/model/:model A NavigationNode needs a required url parameter and ':model' would not match
         the regex defined in the model route. If we pass in valid = True a string like
-        'en/api/model/_replace_me_' will be returned. Since this NavigationNode is
+        'en/api/model/_replace_slug_' will be returned. Since this NavigationNode is
         only used for the frontend this is an "acceptable hack"™ :)
         """
-        replace_string = '_replace_me_'
-        fakemodel = type('obj', (object,), {'slug': replace_string})
-        url = cls._static_url(group=group, view=view, model=fakemodel)
+        replace_strings = []
+        for pattern in cls.vue_config['route_patterns']:
+            replace_strings.append('_replace_' + pattern[0] + '_')
 
-        if valid:
-            return url
+        url = cls._static_url(group=group, view=view, model=replace_strings)
 
-        return url.replace(replace_string, cls.vue_config['route_pattern'])
+        if not valid:
+            for index, pattern in enumerate(cls.vue_config['route_patterns']):
+                url = url.replace(replace_strings[index], pattern[1])
+
+        return url
 
     @classmethod
-    def _reverse_kwargs(cls, route_attributes, model: object = None) -> dict:
+    def _reverse_kwargs(cls, route_attributes, model=None) -> dict:
+        """
+        Generate kwargs vor reverse() based on cls.route_parameters. Basically just get the appropriate
+        attribute from our 'model' with a simple exception: if model is a list we're in the process
+        of faking a url so we just assign the string to the kwarg parameter.
+        """
         return_kwargs = {}
 
         if not isinstance(route_attributes, list):
             route_attributes = [route_attributes]
 
-        for route_attribute in route_attributes:
+        for index, route_attribute in enumerate(route_attributes):
             if isinstance(route_attribute, str):
                 parameter = attribute = route_attribute
             else:
                 parameter = route_attribute[0]
                 attribute = route_attribute[1]
 
-            return_kwargs[parameter] = getattr(model, attribute)
+            if isinstance(model, list):
+                return_kwargs[parameter] = model[index]
+            else:
+                return_kwargs[parameter] = getattr(model, attribute)
 
         return return_kwargs
 
