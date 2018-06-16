@@ -174,9 +174,15 @@ def get_node_route_for_app_model(request, node, route_data):
         'url': node.attr.get('fetch_url'),
     }
 
-    request_url_name = resolve(request.path).url_name
-    node_url_name = resolve(node.get_absolute_url()).url_name
-    is_selected_node = request.path == node.get_absolute_url() or request_url_name == node_url_name
+    try:
+        request_url_name = resolve(request.path).url_name
+        node_url_name = resolve(node.get_absolute_url()).url_name
+    except Resolver404:
+        resolver_match = False
+    else:
+        resolver_match = request_url_name == node_url_name
+
+    is_selected_node = request.path == node.get_absolute_url() or resolver_match
     if is_selected_node:
         # We need to prepare the initial structure of the fetched data. The actual data is added by the view.
         route_data['api']['fetched'] = {
