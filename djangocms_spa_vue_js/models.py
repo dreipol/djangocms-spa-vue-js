@@ -1,3 +1,5 @@
+import warnings
+
 from appconf import AppConf
 from django.core.handlers.wsgi import WSGIRequest
 from django.db.models import Model
@@ -57,6 +59,9 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
     @property
     def vue_js_link(self) -> dict:
         """ Generate detail api view url so the vue router knows where to fetch this model """
+        warnings.warn('Will be deprecated. Generate link to detail view in the parent '
+                      'get_frontend_list_data_dict method if it is needed.', DeprecationWarning)
+
         return {
             'name': self.vue_config['router_name'],
             'fetch': self.url(group='api', view='detail')
@@ -73,12 +78,8 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
             'fetch_url': cls._vue_pattern_url(group='normal', view=view),
         }
 
-    def get_frontend_list_data_dict(
-        self,
-        request: WSGIRequest,
-        editable: bool = False,
-        placeholder_name: str = ''
-    ) -> dict:
+    def get_frontend_list_data_dict(self, request: WSGIRequest, editable: bool = False,
+                                    placeholder_name: str = '') -> dict:
         """
         Prepare a base dict for the list view. This should be extended by the model
         to include any additional data. If no custom view is defined in
@@ -88,10 +89,6 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
 
         if editable:
             data.update(self.get_cms_placeholder_json(request=request, placeholder_name=placeholder_name))
-
-        data.update({
-            'content': {'id': self.pk, 'link': self.vue_js_link}
-        })
 
         return data
 
@@ -128,13 +125,7 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
         return self._static_url(group, view, self, language)
 
     @classmethod
-    def _static_url(
-        cls,
-        group: str,
-        view: str,
-        model=None,
-        language: str = None
-    ) -> str:
+    def _static_url(cls, group: str, view: str, model=None, language: str = None) -> str:
         """
         Generate reverse() url to route view based on the passed in 'routes' dict. cls.route_parameters and 'model'
         is then used to generate the correct kwargs parameters for reverse().
@@ -146,12 +137,7 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
             return reverse(route_name, kwargs=cls._reverse_kwargs(cls.route_parameters[view], model))
 
     @classmethod
-    def _vue_pattern_url(
-        cls,
-        group: str = 'normal',
-        view: str = 'detail',
-        valid: bool = False
-    ) -> str:
+    def _vue_pattern_url(cls, group: str = 'normal', view: str = 'detail', valid: bool = False) -> str:
         """
         Since we don't want to print hundreds of detail model urls in the frontend, we can generate routes à la
         en/api/model/:model A NavigationNode needs a required url parameter and ':model' would not match
