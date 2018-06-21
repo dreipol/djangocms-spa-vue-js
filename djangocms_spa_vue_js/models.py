@@ -47,7 +47,7 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
     #   - 'string'                      -> string, meaning that your route parameter and your model field share
     #                                      the same name
     #   - ('parameter', 'attribute')    -> tuple, your model route parameter and field name are different
-    #   - ['string', 'string']          -> list with strings, tuples or a mix of both
+    #   - ['string', 'string']          -> list with strings, tuples or a mix of both if you have multiple kwargs
     route_parameters = {
         'list': None,
         'detail': 'slug',
@@ -77,6 +77,22 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
             'named_route_path': cls._vue_pattern_url(group='api', view=view),
             'fetch_url': cls._vue_pattern_url(group='normal', view=view),
         }
+
+    def url_params(self, view: str) -> dict:
+        """ Generate the url parameters à la :model -> my-model-slug """
+        # 1. Get our normal reverse kwargs, this will return a dict with key: value where
+        #    key is our route_parameters[view] value a.k.a the actual django route pattern name
+        #    and value is our slug or whatever attribute we defined (see docs to self.route_parameters)
+        reverse_kwargs = self._reverse_kwargs(self.route_parameters[view], self)
+
+        # 2. Loop all route_patterns tuples and if a tuple index 0 exists in the reverse_kwargs dict as key
+        #    replace it with tuple index 1
+        for pattern in self.vue_config['route_patterns']:
+            # 'Replace' old key with new one
+            if pattern[0] in reverse_kwargs:
+                reverse_kwargs[pattern[1].replace(':', '')] = reverse_kwargs.pop(pattern[0])
+
+        return reverse_kwargs
 
     def get_frontend_list_data_dict(self, request: WSGIRequest, editable: bool = False,
                                     placeholder_name: str = '') -> dict:
