@@ -6,7 +6,6 @@ from menus.menu_pool import menu_pool
 from djangocms_spa.content_helpers import (get_frontend_data_dict_for_cms_page, get_frontend_data_dict_for_partials,
                                            get_partial_names_for_template)
 from djangocms_spa.utils import get_frontend_component_name_by_template, get_view_from_url
-
 from .router_helpers import get_vue_js_router_name_for_cms_page
 
 
@@ -168,6 +167,7 @@ def get_node_route_for_app_model(request, node, route_data):
     # Set name and component of the route.
     route_data['component'] = node.attr.get('component')
     route_data['name'] = node.attr.get('vue_js_router_name')
+    route_data['path'] = node.attr.get('named_route_path')
 
     # Add the link to fetch the data from the API.
     route_data['api']['fetch'] = {
@@ -186,5 +186,4 @@ def get_node_route_for_app_model(request, node, route_data):
         }
         route_data['params'] = node.attr.get('url_params', {})
 
-    route_data['path'] = node.get_absolute_url()
     return route_data

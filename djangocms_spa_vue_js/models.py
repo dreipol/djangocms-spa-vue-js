@@ -74,8 +74,8 @@ class DjangocmsVueJsMixin(DjangoCmsMixin):
             'component': cls.vue_config['router_component'],
             'vue_js_router_name': cls.vue_config['router_name'],
             'named_route_path_patterns': dict(cls.vue_config['route_patterns']),
-            'named_route_path': cls._vue_pattern_url(group='api', view=view),
-            'fetch_url': cls._vue_pattern_url(group='normal', view=view),
+            'named_route_path': cls._vue_pattern_url(group='normal', view=view),
+            'fetch_url': cls._vue_pattern_url(group='api', view=view),
         }
 
     def url_params(self, view: str) -> dict:
