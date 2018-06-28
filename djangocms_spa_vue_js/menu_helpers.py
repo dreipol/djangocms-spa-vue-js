@@ -49,17 +49,18 @@ def get_node_template_name(node):
         return settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
     if view.__module__ == 'cms.views':
         template = node.attr.get('template')
-        if not template:
+        if template:
+            return template
+        else:
             try:
-                template = node.attr.get('cms_page').get_template()
+                return node.attr.get('cms_page').get_template()
             except:
-                template = settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
-        return template
+                return settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
     else:
         return view.template_name
 
 
-def get_node_route(request, node, renderer):
+def get_node_route(request, node, renderer, template=''):
     # Initial data of the route.
     route_data = {
         'api': {},
@@ -74,8 +75,11 @@ def get_node_route(request, node, renderer):
         route['api']['fetch']['useCache'] = False
 
     if node.selected and node.get_absolute_url() == request.path:
+        if not template:
+            template = get_node_template_name(node)
+
         # Static CMS placeholders and other global page elements (e.g. menu) go into the `partials` dict.
-        partial_names = get_partial_names_for_template(template=get_node_template_name(node))
+        partial_names = get_partial_names_for_template(template=template)
         route['api']['fetched']['response']['partials'] = get_frontend_data_dict_for_partials(
             partials=partial_names,
             request=request,
