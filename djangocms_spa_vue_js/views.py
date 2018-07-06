@@ -2,10 +2,9 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.views.generic import TemplateView
 
-from djangocms_spa.content_helpers import get_frontend_data_dict_for_partials
+from djangocms_spa.content_helpers import get_frontend_data_dict_for_partials, get_partial_names_for_template
 from djangocms_spa.decorators import cache_view
 from djangocms_spa.views import MultipleObjectSpaMixin, SingleObjectSpaMixin
-
 from .menu_helpers import get_vue_js_router
 
 
@@ -31,9 +30,9 @@ class VueRouterView(TemplateView):
         # Put the context data of this view into the active route.
         active_route = self.get_active_route(vue_js_router['routes'])
         if active_route:
-            active_route['api']['fetched']['response']['data'].update(
-                self.get_fetched_data()
-            )
+            active_route['api']['fetched']['response']['data'].update(self.get_fetched_data())
+            partial_names = get_partial_names_for_template(template=self.template_name)
+            active_route['api']['fetched']['response']['partials'] = self.get_view_partials(partial_names=partial_names)
 
             url_params_for_active_route = self.get_url_params_for_active_route()
             if url_params_for_active_route:

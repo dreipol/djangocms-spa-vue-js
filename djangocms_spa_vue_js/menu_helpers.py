@@ -48,17 +48,18 @@ def get_node_template_name(node):
         return settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
     if view.__module__ == 'cms.views':
         template = node.attr.get('template')
-        if not template:
+        if template:
+            return template
+        else:
             try:
-                template = node.attr.get('cms_page').get_template()
+                return node.attr.get('cms_page').get_template()
             except:
-                template = settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
-        return template
+                return settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
     else:
         return view.template_name
 
 
-def get_node_route(request, node, renderer):
+def get_node_route(request, node, renderer, template=''):
     # Initial data of the route.
     route_data = {
         'api': {},
@@ -73,8 +74,11 @@ def get_node_route(request, node, renderer):
         route['api']['fetch']['useCache'] = False
 
     if node.selected and node.get_absolute_url() == request.path:
+        if not template:
+            template = get_node_template_name(node)
+
         # Static CMS placeholders and other global page elements (e.g. menu) go into the `partials` dict.
-        partial_names = get_partial_names_for_template(template=get_node_template_name(node))
+        partial_names = get_partial_names_for_template(template=template)
         route['api']['fetched']['response']['partials'] = get_frontend_data_dict_for_partials(
             partials=partial_names,
             request=request,
@@ -174,9 +178,15 @@ def get_node_route_for_app_model(request, node, route_data):
         'url': node.attr.get('fetch_url'),
     }
 
-    request_url_name = resolve(request.path).url_name
-    node_url_name = resolve(node.get_absolute_url()).url_name
-    is_selected_node = request.path == node.get_absolute_url() or request_url_name == node_url_name
+    try:
+        request_url_name = resolve(request.path).url_name
+        node_url_name = resolve(node.get_absolute_url()).url_name
+    except Resolver404:
+        resolver_match = False
+    else:
+        resolver_match = request_url_name == node_url_name
+
+    is_selected_node = request.path == node.get_absolute_url() or resolver_match
     if is_selected_node:
         # We need to prepare the initial structure of the fetched data. The actual data is added by the view.
         route_data['api']['fetched'] = {
