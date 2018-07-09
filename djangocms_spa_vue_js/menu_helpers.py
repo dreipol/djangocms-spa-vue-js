@@ -57,7 +57,10 @@ def get_node_template_name(node):
             except:
                 return settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
     else:
-        return view.template_name
+        try:
+            return view.template_name
+        except AttributeError:
+            return settings.DJANGOCMS_SPA_DEFAULT_TEMPLATE
 
 
 def get_node_route(request, node, renderer, template=''):
