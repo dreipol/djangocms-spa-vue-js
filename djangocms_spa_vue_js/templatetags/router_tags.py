@@ -16,5 +16,4 @@ def vue_js_router(context):
         router = get_vue_js_router(context=context)
 
     router_json = json.dumps(router)
-    escaped_router_json = router_json.replace("'", "&#39;")  # Escape apostrophes to prevent JS errors.
-    return mark_safe(escaped_router_json)
+    return mark_safe(router_json)
