@@ -1,12 +1,11 @@
 from django.conf import settings
-from django.urls import Resolver404, reverse, resolve
+from django.urls import Resolver404, resolve, reverse
 from django.utils.encoding import force_text
 from menus.menu_pool import menu_pool
 
 from djangocms_spa.content_helpers import (get_frontend_data_dict_for_cms_page, get_frontend_data_dict_for_partials,
                                            get_partial_names_for_template)
 from djangocms_spa.utils import get_frontend_component_name_by_template, get_view_from_url
-
 from .router_helpers import get_vue_js_router_name_for_cms_page
 
 
@@ -140,6 +139,11 @@ def get_node_route_for_cms_page(request, node, route_data):
     route_data['api']['fetch'] = {
         'url': fetch_url,
     }
+
+    if cms_page.reverse_id:
+        route_data['meta'] = {
+            'id': cms_page.reverse_id
+        }
 
     # Add initial data for the selected page.
     if node.selected and node.get_absolute_url() == request.path:
