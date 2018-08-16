@@ -203,5 +203,11 @@ def get_node_route_for_app_model(request, node, route_data):
         }
         route_data['params'] = node.attr.get('url_params', {})
 
+    meta_id = node.attr.get('id')
+    if meta_id:
+        route_data['meta'] = {
+            'id': meta_id
+        }
+
     route_data['path'] = node.get_absolute_url()
     return route_data
