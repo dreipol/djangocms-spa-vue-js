@@ -117,7 +117,10 @@ def get_node_route_for_cms_page(request, node, route_data):
     # Add the link to fetch the data from the API.
     if cms_page.application_urls not in settings.DJANGOCMS_SPA_VUE_JS_APPHOOKS_WITH_ROOT_URL:
         if not cms_page_title.path:  # The home page does not have a path
-            fetch_url = reverse('api:cms_page_detail_home')
+            if hasattr(settings, 'DJANGOCMS_SPA_USE_SERIALIZERS') and settings.DJANGOCMS_SPA_USE_SERIALIZERS:
+                fetch_url = reverse('api:cms_page_detail', kwargs={'path': settings.DJANGOCMS_SPA_HOME_PATH})
+            else:
+                fetch_url = reverse('api:cms_page_detail_home')
         elif node.attr.get('named_route_path_pattern'):
             # Get the fetch_url of the parent node through the path of the parent node
             parent_node_path = cms_page_title.path.replace('/%s' % cms_page_title.slug, '')
@@ -147,14 +150,20 @@ def get_node_route_for_cms_page(request, node, route_data):
 
     # Add initial data for the selected page.
     if node.selected and node.get_absolute_url() == request.path:
+        if hasattr(settings, 'DJANGOCMS_SPA_USE_SERIALIZERS') and settings.DJANGOCMS_SPA_USE_SERIALIZERS:
+            from djangocms_spa.serializers import PageSerializer
+            data = PageSerializer(instance=cms_page).data
+        else:
+            data = get_frontend_data_dict_for_cms_page(
+                cms_page=cms_page,
+                cms_page_title=cms_page_title,
+                request=request,
+                editable=request.user.has_perm('cms.change_page')
+            )
+
         fetched_data = {
             'response': {
-                'data': get_frontend_data_dict_for_cms_page(
-                    cms_page=cms_page,
-                    cms_page_title=cms_page_title,
-                    request=request,
-                    editable=request.user.has_perm('cms.change_page')
-                )
+                'data': data
             }
         }
         if node.attr.get('named_route_path_pattern'):
