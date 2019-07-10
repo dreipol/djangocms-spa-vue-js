@@ -176,7 +176,7 @@ def get_node_route_for_cms_page(request, node, route_data):
                 })
         route_data['api']['fetched'] = fetched_data
 
-    if len(settings.LANGUAGES) > 1:
+    if settings.DJANGOCMS_SPA_VUE_JS_USE_I18N_PATTERNS:
         route_data['path'] = '/%s/%s' % (request.LANGUAGE_CODE, cms_page_title.path)
     else:
         route_data['path'] = '/%s' % cms_page_title.path
