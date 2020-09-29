@@ -131,7 +131,7 @@ Your ``cms_menus.py`` might looks like this:
             nodes = []
             counter = 1
             is_draft = self.instance.publisher_is_draft
-            is_edit = hasattr(request, 'toolbar') and request.user.is_staff and request.toolbar.edit_mode
+            is_edit = hasattr(request, 'toolbar') and request.user.is_staff and request.toolbar.edit_mode_active
 
             # We don't want to parse the instance in live and draft mode. Depending on the request user we return the
             # corresponding version.
