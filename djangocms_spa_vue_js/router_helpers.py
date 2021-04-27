@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 
 def get_vue_js_link_dict(cms_page=None, instance=None, external_link=None):
