@@ -1,9 +1,21 @@
+from dataclasses import dataclass
+
 from cms.models import Page
 from django.utils.text import slugify
 from menus.base import Modifier
 from menus.menu_pool import menu_pool
 
 from djangocms_spa_vue_js.menu_helpers import get_node_route
+
+
+@dataclass
+class RouterCMSPage:
+    pk: int
+    template: str
+    reverse_id: str
+    application_urls: str
+    title_path: str
+    title_slug: str
 
 
 class VueJsMenuModifier(Modifier):
@@ -35,12 +47,22 @@ class VueJsMenuModifier(Modifier):
         router_nodes = []
         named_route_path_patterns = {}
 
+        page_nodes = {n.id: n for n in nodes if n.attr['is_page']}
+        pages = Page.objects.filter(id__in=page_nodes.keys()).values('pk', 'template', 'reverse_id', 'application_urls',
+                                                                     'title_set__path', 'title_set__slug')
+        router_pages = {page['pk']: RouterCMSPage(pk=page['pk'],
+                                                  template=page['template'],
+                                                  reverse_id=page['reverse_id'],
+                                                  application_urls=page['application_urls'],
+                                                  title_path=page['title_set__path'],
+                                                  title_slug=page['title_set__slug']) for page in pages}
+
         for node in nodes:
             if node.attr.get('login_required') and not request.user.is_authenticated:
                 continue
 
             if node.attr.get('is_page'):
-                node.attr['cms_page'] = Page.objects.get(id=node.id)
+                node.attr['router_page'] = router_pages.get(node.id)
 
             node_route = get_node_route(request=request, node=node, renderer=self.renderer)
 

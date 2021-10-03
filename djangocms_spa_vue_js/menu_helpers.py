@@ -1,3 +1,4 @@
+from cms.models import Page
 from django.conf import settings
 from django.urls import Resolver404, resolve, reverse
 from django.utils.encoding import force_text
@@ -69,7 +70,7 @@ def get_node_route(request, node, renderer, template=''):
     }
 
     if node.attr.get('is_page'):
-        route = get_node_route_for_cms_page(request, node, route_data)
+        route = get_node_route_for_cms_page(request, node, route_data, node.attr.get('router_page'))
     else:
         route = get_node_route_for_app_model(request, node, route_data)
 
@@ -104,31 +105,31 @@ def get_node_route(request, node, renderer, template=''):
     return route
 
 
-def get_node_route_for_cms_page(request, node, route_data):
-    cms_page = node.attr['cms_page']
-    cms_page_title = cms_page.title_set.get(language=request.LANGUAGE_CODE)
-    cms_template = cms_page.get_template()
-
+def get_node_route_for_cms_page(request, node, route_data, router_page):
     # Set name and component of the route.
-    route_data['name'] = get_vue_js_router_name_for_cms_page(cms_page.pk)
+    route_data['name'] = get_vue_js_router_name_for_cms_page(router_page.pk)
     if not node.attr.get('redirect_url'):
-        route_data['component'] = get_frontend_component_name_by_template(cms_template)
+        try:
+            component = get_frontend_component_name_by_template(router_page.template)
+        except KeyError:
+            component = settings.DJANGOCMS_SPA_TEMPLATES[settings.DJANGOCMS_SPA_DEFAULT_TEMPLATE]['frontend_component_name']
+        route_data['component'] = component
 
     # Add the link to fetch the data from the API.
-    if cms_page.application_urls not in settings.DJANGOCMS_SPA_VUE_JS_APPHOOKS_WITH_ROOT_URL:
-        if not cms_page_title.path:  # The home page does not have a path
+    if router_page.application_urls not in settings.DJANGOCMS_SPA_VUE_JS_APPHOOKS_WITH_ROOT_URL:
+        if not router_page.title_path:  # The home page does not have a path
             if hasattr(settings, 'DJANGOCMS_SPA_USE_SERIALIZERS') and settings.DJANGOCMS_SPA_USE_SERIALIZERS:
                 fetch_url = reverse('api:cms_page_detail', kwargs={'path': settings.DJANGOCMS_SPA_HOME_PATH})
             else:
                 fetch_url = reverse('api:cms_page_detail_home')
         elif node.attr.get('named_route_path_pattern'):
             # Get the fetch_url of the parent node through the path of the parent node
-            parent_node_path = cms_page_title.path.replace('/%s' % cms_page_title.slug, '')
+            parent_node_path = router_page.title_path.replace('/%s' % router_page.title_slug, '')
             fetch_url_of_parent_node = reverse('api:cms_page_detail', kwargs={'path': parent_node_path})
             fetch_url = '{parent_url}{path_pattern}/'.format(parent_url=fetch_url_of_parent_node,
                                                              path_pattern=node.attr.get('named_route_path_pattern'))
         else:
-            fetch_url = reverse('api:cms_page_detail', kwargs={'path': cms_page_title.path})
+            fetch_url = reverse('api:cms_page_detail', kwargs={'path': router_page.title_path})
 
         # Add redirect url if available.
         if node.attr.get('redirect_url'):
@@ -143,20 +144,21 @@ def get_node_route_for_cms_page(request, node, route_data):
         'url': fetch_url,
     }
 
-    if cms_page.reverse_id:
+    if router_page.reverse_id:
         route_data['meta'] = {
-            'id': cms_page.reverse_id
+            'id': router_page.reverse_id
         }
 
     # Add initial data for the selected page.
     if node.selected and node.get_absolute_url() == request.path:
+        cms_page = Page.objects.get(pk=router_page.pk)
         if hasattr(settings, 'DJANGOCMS_SPA_USE_SERIALIZERS') and settings.DJANGOCMS_SPA_USE_SERIALIZERS:
             from djangocms_spa.serializers import PageSerializer
             data = PageSerializer(instance=cms_page).data
         else:
             data = get_frontend_data_dict_for_cms_page(
                 cms_page=cms_page,
-                cms_page_title=cms_page_title,
+                cms_page_title=cms_page.title_set.get(language=request.LANGUAGE_CODE),
                 request=request,
                 editable=request.user.has_perm('cms.change_page')
             )
@@ -171,15 +173,15 @@ def get_node_route_for_cms_page(request, node, route_data):
             if url_param:
                 fetched_data.update({
                     'params': {
-                        url_param: cms_page_title.slug
+                        url_param: router_page.slug
                     }
                 })
         route_data['api']['fetched'] = fetched_data
 
     if settings.DJANGOCMS_SPA_VUE_JS_USE_I18N_PATTERNS:
-        route_data['path'] = '/%s/%s' % (request.LANGUAGE_CODE, cms_page_title.path)
+        route_data['path'] = '/%s/%s' % (request.LANGUAGE_CODE, router_page.title_path)
     else:
-        route_data['path'] = '/%s' % cms_page_title.path
+        route_data['path'] = '/%s' % router_page.title_path
 
     return route_data
 
