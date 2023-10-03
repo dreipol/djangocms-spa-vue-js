@@ -33,6 +33,7 @@ class VueJsMenuModifier(Modifier):
             - News detail A
             - News detail B
     """
+
     def modify(self, request, nodes, namespace, root_id, post_cut, breadcrumb):
         # If the menu is not yet cut, don't do anything.
         if post_cut:
@@ -95,5 +96,6 @@ class VueJsMenuModifier(Modifier):
             router_nodes.append(node)
 
         return router_nodes
+
 
 menu_pool.register_modifier(VueJsMenuModifier)

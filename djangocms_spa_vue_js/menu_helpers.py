@@ -1,12 +1,12 @@
 from cms.models import Page
 from django.conf import settings
 from django.urls import Resolver404, resolve, reverse
-from django.utils.encoding import force_text
-from menus.menu_pool import menu_pool
-
+from django.utils.encoding import force_str
 from djangocms_spa.content_helpers import (get_frontend_data_dict_for_cms_page, get_frontend_data_dict_for_partials,
                                            get_partial_names_for_template)
 from djangocms_spa.utils import get_frontend_component_name_by_template, get_view_from_url
+from menus.menu_pool import menu_pool
+
 from .router_helpers import get_vue_js_router_name_for_cms_page
 
 
@@ -112,7 +112,8 @@ def get_node_route_for_cms_page(request, node, route_data, router_page):
         try:
             component = get_frontend_component_name_by_template(router_page.template)
         except KeyError:
-            component = settings.DJANGOCMS_SPA_TEMPLATES[settings.DJANGOCMS_SPA_DEFAULT_TEMPLATE]['frontend_component_name']
+            component = settings.DJANGOCMS_SPA_TEMPLATES[settings.DJANGOCMS_SPA_DEFAULT_TEMPLATE][
+                'frontend_component_name']
         route_data['component'] = component
 
     # Add the link to fetch the data from the API.
@@ -138,7 +139,7 @@ def get_node_route_for_cms_page(request, node, route_data, router_page):
     else:
         # Apphooks use a view that has a custom API URL to fetch data from.
         view = get_view_from_url(node.get_absolute_url())
-        fetch_url = force_text(view().get_fetch_url())
+        fetch_url = force_str(view().get_fetch_url())
 
     route_data['api']['fetch'] = {
         'url': fetch_url,

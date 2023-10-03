@@ -1,10 +1,10 @@
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.views.generic import TemplateView
-
 from djangocms_spa.content_helpers import get_frontend_data_dict_for_partials, get_partial_names_for_template
 from djangocms_spa.decorators import cache_view
 from djangocms_spa.views import MultipleObjectSpaMixin, SingleObjectSpaMixin
+
 from .menu_helpers import get_vue_js_router
 
 
