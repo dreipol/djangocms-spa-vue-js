@@ -174,7 +174,7 @@ def get_node_route_for_cms_page(request, node, route_data, router_page):
             if url_param:
                 fetched_data.update({
                     'params': {
-                        url_param: router_page.slug
+                        url_param: router_page.title_slug
                     }
                 })
         route_data['api']['fetched'] = fetched_data
