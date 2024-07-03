@@ -53,7 +53,7 @@ def get_node_template_name(node):
             return template
         else:
             try:
-                return node.attr.get('cms_page').get_template()
+                return node.attr.get('router_page').template
             except:
                 return settings.DJANGOCMS_SPA_VUE_JS_ERROR_404_TEMPLATE
     else:

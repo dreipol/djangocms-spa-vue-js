@@ -49,14 +49,17 @@ class VueJsMenuModifier(Modifier):
         named_route_path_patterns = {}
 
         page_nodes = {n.id: n for n in nodes if n.attr['is_page']}
-        pages = Page.objects.filter(id__in=page_nodes.keys()).values('pk', 'template', 'reverse_id', 'application_urls',
-                                                                     'title_set__path', 'title_set__slug')
-        router_pages = {page['pk']: RouterCMSPage(pk=page['pk'],
-                                                  template=page['template'],
-                                                  reverse_id=page['reverse_id'],
-                                                  application_urls=page['application_urls'],
-                                                  title_path=page['title_set__path'],
-                                                  title_slug=page['title_set__slug']) for page in pages}
+        pages = Page.objects.filter(id__in=page_nodes.keys()).prefetch_related('title_set')
+        router_pages = {
+            page.pk: RouterCMSPage(
+                pk=page.pk,
+                template=page.get_template(),
+                reverse_id=page.reverse_id,
+                application_urls=page.application_urls,
+                title_path=page.title_set.first().path,
+                title_slug=page.title_set.first().slug
+            ) for page in pages
+        }
 
         for node in nodes:
             if node.attr.get('login_required') and not request.user.is_authenticated:
